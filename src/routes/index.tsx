@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import heroChip from "@/assets/hero-chip.jpg";
 import productShot from "@/assets/product-shot.jpg";
