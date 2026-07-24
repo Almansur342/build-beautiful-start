@@ -825,7 +825,7 @@ function FooterCol({ title, links }: { title: string; links: Array<{ label: stri
 function Index() {
   return (
     <div className="min-h-screen bg-background">
-      <Nav />
+      
       <Hero />
       <ProductShots />
       <Capabilities />

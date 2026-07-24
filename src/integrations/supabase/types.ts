@@ -111,26 +111,44 @@ export type Database = {
         Row: {
           avatar_url: string | null
           banned: boolean
+          bio: string | null
+          company: string | null
           created_at: string
           email: string
           full_name: string | null
           id: string
+          phone: string | null
+          timezone: string | null
+          updated_at: string
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
           banned?: boolean
+          bio?: string | null
+          company?: string | null
           created_at?: string
           email: string
           full_name?: string | null
           id: string
+          phone?: string | null
+          timezone?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
           banned?: boolean
+          bio?: string | null
+          company?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
+          timezone?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -255,6 +273,7 @@ export type Database = {
           created_at: string
           id: string
           sender: string
+          ticket_id: string | null
           user_id: string
         }
         Insert: {
@@ -262,6 +281,7 @@ export type Database = {
           created_at?: string
           id?: string
           sender: string
+          ticket_id?: string | null
           user_id: string
         }
         Update: {
@@ -269,6 +289,54 @@ export type Database = {
           created_at?: string
           id?: string
           sender?: string
+          ticket_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          priority: string
+          status: string
+          subject: string
+          unread_for_admin: number
+          unread_for_user: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject: string
+          unread_for_admin?: number
+          unread_for_user?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject?: string
+          unread_for_admin?: number
+          unread_for_user?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

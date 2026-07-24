@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { BLOG_POSTS } from "./index";
-import { ArrowLeft, Share2, Twitter, Linkedin, Link as LinkIcon, Check } from "lucide-react";
+import { Share2, Twitter, Linkedin, Link as LinkIcon, Check } from "lucide-react";
+import { BreadcrumbBar } from "@/components/breadcrumb-bar";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: ({ params }) => {
@@ -39,17 +40,7 @@ function BlogPost() {
   const { post } = Route.useLoaderData();
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-foreground grid place-items-center"><span className="text-background font-bold text-sm">Q</span></div>
-            <span className="font-semibold">Qrinux LeadLens</span>
-          </Link>
-          <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-            <ArrowLeft className="h-4 w-4" /> All posts
-          </Link>
-        </div>
-      </header>
+      <BreadcrumbBar title={post.title} />
       <article className="max-w-3xl mx-auto px-6 py-16">
         <div className="text-xs text-muted-foreground">{post.date} • {post.readTime}</div>
         <h1 className="mt-3 text-4xl sm:text-5xl font-semibold tracking-tight">{post.title}</h1>
