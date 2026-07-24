@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { BLOG_POSTS } from "./index";
+import { BLOG_POSTS, type BlogPost } from "./index";
 import { Share2, Twitter, Linkedin, Link as LinkIcon, Check, ArrowRight, ArrowLeft, Clock, Calendar } from "lucide-react";
 import { BreadcrumbBar } from "@/components/breadcrumb-bar";
 
@@ -83,7 +83,7 @@ function BlogPost() {
       {/* Body */}
       <article className="max-w-3xl mx-auto px-6 py-14">
         <div className="space-y-6 text-[17px] leading-relaxed text-foreground/90">
-          {post.content.map((block, i) => {
+          {post.content.map((block: BlogPost["content"][number], i: number) => {
             if (block.type === "h2") {
               return (
                 <h2 key={i} className="text-2xl font-semibold tracking-tight text-foreground pt-4">
@@ -104,7 +104,7 @@ function BlogPost() {
             if (block.type === "list") {
               return (
                 <ul key={i} className="space-y-2 pl-1">
-                  {block.items?.map((li, j) => (
+                  {block.items?.map((li: string, j: number) => (
                     <li key={j} className="flex gap-3">
                       <span className="mt-2.5 h-1 w-1 bg-foreground shrink-0" />
                       <span>{li}</span>
@@ -137,7 +137,7 @@ function BlogPost() {
               </Link>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
-              {related.map((p) => (
+              {related.map((p: BlogPost) => (
                 <Link
                   key={p.slug}
                   to="/blog/$slug"
