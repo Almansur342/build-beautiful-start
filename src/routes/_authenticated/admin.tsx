@@ -105,7 +105,7 @@ function OverviewTab() {
             <FreeLimitEditor
               initial={freeLimit}
               onSave={async (v) => {
-                await updateSetting({ data: { free_daily_limit: v, key: "free_daily_limit", value: v } as any });
+                await updateSetting({ data: { key: "free_daily_limit", value: v } });
                 qc.invalidateQueries({ queryKey: ["admin-overview"] });
               }}
             />
