@@ -729,21 +729,59 @@ function CTA() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border">
-      <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-foreground grid place-items-center"><span className="text-background font-bold text-xs">Q</span></div>
-          <span className="font-semibold">Qrinux LeadLens</span>
-          <span className="text-muted-foreground text-sm">• Evidence-first lead qualification.</span>
+    <footer className="border-t border-border bg-muted/30">
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid lg:grid-cols-5 gap-10">
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-foreground grid place-items-center"><span className="text-background font-bold text-sm">Q</span></div>
+              <span className="font-semibold">Qrinux LeadLens</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-4 max-w-xs">
+              Evidence-first lead qualification for teams that want verdicts, not vibes.
+            </p>
+            <a href="mailto:hello@qrinux.com" className="mt-4 inline-block text-sm hover:text-foreground text-muted-foreground">hello@qrinux.com</a>
+          </div>
+          <FooterCol title="Product" links={[
+            { label: "Pricing", href: "#pricing" },
+            { label: "How it works", href: "#how" },
+            { label: "FAQ", href: "#faq" },
+          ]} />
+          <FooterCol title="Company" links={[
+            { label: "Contact", to: "/contact" },
+            { label: "Blog", to: "/blog" },
+            { label: "Sign in", to: "/auth" },
+          ]} />
+          <FooterCol title="Legal" links={[
+            { label: "Privacy Policy", to: "/legal/privacy" },
+            { label: "Terms of Service", to: "/legal/terms" },
+            { label: "Refund Policy", to: "/legal/refund" },
+            { label: "Cookies", to: "/legal/cookies" },
+          ]} />
         </div>
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="#pricing" className="hover:text-foreground">Pricing</a>
-          <Link to="/blog" className="hover:text-foreground">Blog</Link>
-          <a href="#faq" className="hover:text-foreground">FAQ</a>
-          <Link to="/auth" className="hover:text-foreground">Sign in</Link>
+        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Qrinux LeadLens. All rights reserved.</span>
+          <span>Made for teams that qualify with evidence.</span>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterCol({ title, links }: { title: string; links: Array<{ label: string; href?: string; to?: string }> }) {
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wider font-medium text-foreground mb-4">{title}</div>
+      <ul className="space-y-2.5 text-sm">
+        {links.map((l) =>
+          l.to ? (
+            <li key={l.label}><Link to={l.to as any} className="text-muted-foreground hover:text-foreground">{l.label}</Link></li>
+          ) : (
+            <li key={l.label}><a href={l.href} className="text-muted-foreground hover:text-foreground">{l.label}</a></li>
+          ),
+        )}
+      </ul>
+    </div>
   );
 }
 
