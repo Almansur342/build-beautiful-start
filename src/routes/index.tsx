@@ -773,7 +773,7 @@ function MoreBenefits() {
 }
 
 /* =============================================================
-   HAPPY CLIENTS
+   HAPPY CLIENTS — infinite right-to-left marquee
    ============================================================= */
 function HappyClients() {
   const t = [
@@ -781,29 +781,67 @@ function HappyClients() {
     { q: "The verdict-first workflow is the killer feature. Eligible, Research, Excluded — no more triage meetings.", n: "David M.", r: "SDR Manager, Craftlane" },
     { q: "Fastest tool I've onboarded in 2 years. My team was scanning 100 sites/day inside an hour.", n: "Sara T.", r: "Founder, Mesh Partners" },
     { q: "Evidence-first means less arguing with the pipeline. Deals are cleaner, forecasts are honest.", n: "Marcus V.", r: "VP Sales, Southport" },
+    { q: "LeadLens cut our research time by half. The strict gates are like having a senior SDR pre-qualify every lead.", n: "Elena R.", r: "RevOps, Brightbound" },
+    { q: "I love that the API key is device-locked. No more worrying about credentials floating around the team.", n: "James K.", r: "Engineering Lead, Stacklane" },
+    { q: "The Chrome extension fits our workflow so cleanly we forgot it was a new tool after day one.", n: "Aisha N.", r: "Sales Director, Forma" },
+    { q: "Finally, a qualification tool that tells us what to skip, not just what to chase.", n: "Tom B.", r: "CEO, Quarry Studio" },
   ];
+  const track = [...t, ...t];
   return (
-    <section className="max-w-7xl mx-auto px-6 py-24">
-      <div className="text-center max-w-2xl mx-auto mb-14">
-        <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground mb-3">Happy clients</div>
-        <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight">Loved by teams who hate wasted time.</h2>
+    <section className="py-24 overflow-hidden">
+      <style>{`
+        @keyframes clientMarquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .client-marquee {
+          display: flex;
+          gap: 1.5rem;
+          width: max-content;
+          animation: clientMarquee 45s linear infinite;
+        }
+        .client-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+      <div className="max-w-7xl mx-auto px-6 mb-14">
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground mb-3">Happy clients</div>
+          <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight">Loved by teams who hate wasted time.</h2>
+        </div>
       </div>
-      <div className="grid md:grid-cols-2 gap-6">
-        {t.map((x, i) => (
-          <div key={i} className="rounded-3xl border border-border bg-card p-8">
-            <div className="flex gap-0.5 text-amber-500 mb-4">
-              {[...Array(5)].map((_, k) => <Star key={k} className="h-4 w-4 fill-current" />)}
-            </div>
-            <p className="text-lg leading-relaxed">"{x.q}"</p>
-            <div className="mt-6 flex items-center gap-3">
-              <img src={`https://i.pravatar.cc/64?img=${20 + i}`} alt="" className="h-10 w-10 rounded-full" />
+
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background to-transparent z-10" />
+        <div className="client-marquee">
+          {track.map((x, i) => (
+            <div
+              key={i}
+              className="w-[340px] sm:w-[420px] shrink-0 border border-border bg-card p-7 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.12)] flex flex-col justify-between"
+            >
               <div>
-                <div className="font-semibold text-sm">{x.n}</div>
-                <div className="text-xs text-muted-foreground">{x.r}</div>
+                <div className="flex gap-0.5 text-amber-500 mb-4">
+                  {[...Array(5)].map((_, k) => (
+                    <Star key={k} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="text-base sm:text-lg leading-relaxed text-foreground">"{x.q}"</p>
+              </div>
+              <div className="mt-8 flex items-center gap-3">
+                <img
+                  src={`https://i.pravatar.cc/64?img=${20 + (i % t.length)}`}
+                  alt={x.n}
+                  className="h-11 w-11 object-cover border border-border"
+                />
+                <div>
+                  <div className="font-semibold text-sm">{x.n}</div>
+                  <div className="text-xs text-muted-foreground">{x.r}</div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
