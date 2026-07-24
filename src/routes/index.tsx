@@ -29,12 +29,9 @@ function Index() {
         <p className="mt-6 text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl">
           A simple starter project ready for your next instructions.
         </p>
-        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <div className="mt-10 flex items-center justify-center">
           <Button size="lg" asChild>
             <a href="#get-started">Get Started</a>
-          </Button>
-          <Button variant="outline" size="lg" asChild>
-            <a href="#learn-more">Learn More</a>
           </Button>
         </div>
         <p className="mt-8 text-sm text-muted-foreground">
