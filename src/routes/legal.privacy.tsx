@@ -1,45 +1,65 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LegalArticle, LegalSection } from "@/components/legal-article";
 
 export const Route = createFileRoute("/legal/privacy")({
   head: () => ({
     meta: [
       { title: "Privacy Policy — Qrinux LeadLens" },
       { name: "description", content: "How Qrinux LeadLens collects, uses, and protects your data." },
+      { property: "og:title", content: "Privacy Policy — Qrinux LeadLens" },
+      { property: "og:description", content: "How we handle data, sub-processors, retention, and your rights." },
     ],
   }),
   component: () => (
-    <article>
-      <h1 className="text-4xl font-semibold tracking-tight">Privacy Policy</h1>
-      <p className="text-muted-foreground">Last updated: July 24, 2026</p>
-      <h2>What we collect</h2>
-      <p>
-        We collect the minimum information required to run Qrinux LeadLens: your email address, sign-in
-        provider, hashed API key metadata, device fingerprint, and normalized website evidence you scan.
-        We do not store full HTML, screenshots, or PII of scanned websites.
-      </p>
-      <h2>How we use it</h2>
-      <ul>
-        <li>To authenticate your account and enforce daily scan quotas.</li>
-        <li>To bind your API key to a single device for security.</li>
-        <li>To provide invoices and process refunds through Stripe.</li>
-        <li>To respond to support conversations.</li>
-      </ul>
-      <h2>Sharing</h2>
-      <p>
-        We share data only with sub-processors required to run the service: Stripe for payments,
-        Supabase for authentication and storage, and Google/Apple for social sign-in when you use them.
-        We never sell your data.
-      </p>
-      <h2>Retention</h2>
-      <p>
-        Scan evidence is retained for as long as your account is active. You can request full deletion
-        by emailing <a href="mailto:privacy@qrinux.com">privacy@qrinux.com</a>.
-      </p>
-      <h2>Your rights</h2>
-      <p>
-        You may access, export, or delete your account data at any time. Contact us at{" "}
-        <a href="mailto:privacy@qrinux.com">privacy@qrinux.com</a>.
-      </p>
-    </article>
+    <LegalArticle
+      eyebrow="Privacy"
+      title="Your data, in plain language."
+      lede="We collect the minimum needed to run the product, keep it safe, and hand it back to you whenever you ask."
+      updated="July 24, 2026"
+    >
+      <LegalSection number="01" title="What we collect">
+        <p>
+          To operate Qrinux LeadLens we store your email address, sign-in provider, hashed
+          API key metadata, device fingerprint, and the normalized website evidence you
+          scan. We do not store full HTML, screenshots, or personal data belonging to the
+          websites you scan.
+        </p>
+      </LegalSection>
+
+      <LegalSection number="02" title="How we use it">
+        <ul>
+          <li>Authenticate your account and enforce daily scan quotas.</li>
+          <li>Bind your API key to a single device to prevent key sharing.</li>
+          <li>Provide invoices and process refunds through Stripe.</li>
+          <li>Respond to support conversations you initiate.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection number="03" title="Sub-processors we share with">
+        <p>
+          We share data only with the providers required to run the service:
+          <b> Stripe</b> for payments, <b>Supabase</b> for authentication and storage, and
+          <b> Google or Apple</b> for social sign-in when you choose them. We never sell
+          your data to third parties.
+        </p>
+      </LegalSection>
+
+      <LegalSection number="04" title="Retention">
+        <p>
+          Scan evidence is retained for as long as your account is active. You can request
+          full account deletion by emailing{" "}
+          <a href="mailto:privacy@qrinux.com">privacy@qrinux.com</a> — we remove your
+          records within 30 days.
+        </p>
+      </LegalSection>
+
+      <LegalSection number="05" title="Your rights">
+        <p>
+          You may access, export, or delete your account data at any time from the
+          dashboard, or by writing to{" "}
+          <a href="mailto:privacy@qrinux.com">privacy@qrinux.com</a>.
+        </p>
+      </LegalSection>
+    </LegalArticle>
   ),
 });
