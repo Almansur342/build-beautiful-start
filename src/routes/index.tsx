@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import heroChip from "@/assets/hero-chip.jpg";
 import productShot from "@/assets/product-shot.jpg";
-import founderPhoto from "@/assets/founder.jpg";
+import founderPhoto from "@/assets/founder.png.asset.json";
 import blogEvidenceImg from "@/assets/blog-evidence.jpg";
 import blogGatesImg from "@/assets/blog-gates.jpg";
 import blogExtensionImg from "@/assets/blog-extension.jpg";
@@ -480,7 +480,7 @@ function Founder() {
     <section className="max-w-6xl mx-auto px-6 py-24">
       <div className="grid md:grid-cols-5 gap-10 items-center">
         <div className="md:col-span-2">
-          <img src={founderPhoto} alt="Founder" className="w-full rounded-3xl border border-border" loading="lazy" />
+          <img src={founderPhoto.url} alt="Founder" className="w-full rounded-3xl border border-border" loading="lazy" />
         </div>
         <div className="md:col-span-3">
           <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground mb-3">From the founder</div>
