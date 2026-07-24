@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import heroChip from "@/assets/hero-chip.jpg";
 import productShot from "@/assets/product-shot.jpg";
-import founderPhoto from "@/assets/founder.jpg";
+import founderPhoto from "@/assets/founder.png.asset.json";
 import blogEvidenceImg from "@/assets/blog-evidence.jpg";
 import blogGatesImg from "@/assets/blog-gates.jpg";
 import blogExtensionImg from "@/assets/blog-extension.jpg";
