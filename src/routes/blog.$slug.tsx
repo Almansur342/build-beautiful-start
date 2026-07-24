@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { BLOG_POSTS } from "./index";
-import { ArrowLeft, Share2, Twitter, Linkedin, Link as LinkIcon, Check } from "lucide-react";
+import { Share2, Twitter, Linkedin, Link as LinkIcon, Check } from "lucide-react";
+import { BreadcrumbBar } from "@/components/breadcrumb-bar";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: ({ params }) => {
