@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import { BLOG_POSTS } from "./index";
 import { BreadcrumbBar } from "@/components/breadcrumb-bar";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 4;
 
 export const Route = createFileRoute("/blog")({
   head: () => ({
@@ -10,6 +13,8 @@ export const Route = createFileRoute("/blog")({
       { name: "description", content: "Ideas, product deep-dives, and sales craft from the Qrinux LeadLens team." },
       { property: "og:title", content: "Qrinux LeadLens — Blog" },
       { property: "og:description", content: "Sharper prospecting, one read at a time." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: BlogPage,
@@ -17,6 +22,14 @@ export const Route = createFileRoute("/blog")({
 
 function BlogPage() {
   const [featured, ...rest] = BLOG_POSTS;
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
+  const paged = useMemo(
+    () => rest.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [rest, page],
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <BreadcrumbBar title="Blog" />
@@ -27,7 +40,7 @@ function BlogPage() {
           Deep dives on evidence-first qualification, outbound strategy, and the craft behind LeadLens.
         </p>
 
-        {featured && (
+        {featured && page === 1 && (
           <Link
             to="/blog/$slug"
             params={{ slug: featured.slug }}
@@ -63,7 +76,7 @@ function BlogPage() {
         )}
 
         <div className="mt-10 grid md:grid-cols-2 gap-6">
-          {rest.map((p) => (
+          {paged.map((p) => (
             <Link
               key={p.slug}
               to="/blog/$slug"
@@ -93,7 +106,43 @@ function BlogPage() {
             </Link>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <nav className="mt-12 flex items-center justify-between border-t border-border pt-6" aria-label="Blog pagination">
+            <button
+              onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              disabled={page === 1}
+              className="inline-flex items-center gap-1 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:underline"
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  className={`h-9 w-9 text-sm font-medium border ${
+                    n === page
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-border hover:bg-muted"
+                  }`}
+                  aria-current={n === page ? "page" : undefined}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              disabled={page === totalPages}
+              className="inline-flex items-center gap-1 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:underline"
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </button>
+          </nav>
+        )}
       </main>
     </div>
   );
 }
+

@@ -29,12 +29,10 @@ export function PublicNav() {
   if (pathname.startsWith("/auth") || isDashboard(pathname)) return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-foreground grid place-items-center">
-            <span className="text-background font-bold text-sm">Q</span>
-          </div>
+          <img src="/logo.png" alt="Qrinux" width={28} height={28} className="h-7 w-7" />
           <span className="font-semibold tracking-tight">Qrinux LeadLens</span>
         </Link>
 
