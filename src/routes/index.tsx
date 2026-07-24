@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import heroChip from "@/assets/hero-chip.jpg";
 import productShot from "@/assets/product-shot.jpg";
 import founderPhoto from "@/assets/founder.jpg";
+import blogEvidenceImg from "@/assets/blog-evidence.jpg";
+import blogGatesImg from "@/assets/blog-gates.jpg";
+import blogExtensionImg from "@/assets/blog-extension.jpg";
+
 import {
   ArrowRight,
   Check,
@@ -670,9 +674,8 @@ function HappyClients() {
 /* =============================================================
    BLOG
    ============================================================= */
-import blogEvidenceImg from "@/assets/blog-evidence.jpg";
-import blogGatesImg from "@/assets/blog-gates.jpg";
-import blogExtensionImg from "@/assets/blog-extension.jpg";
+
+
 
 export type BlogPost = {
   slug: string;
