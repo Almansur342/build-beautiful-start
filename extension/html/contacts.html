@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Qrinux LeadLens - Evidence Vault</title>
+    <link rel="stylesheet" href="../css/contacts.css">
+  </head>
+  <body class="contacts-page">
+    <header class="cf-header">
+      <div class="cf-brand">
+        <img class="cf-brand__logo" src="../images/brand-logo.png" alt="Qrinux LeadLens logo">
+        <div>
+          <div class="cf-brand__name">Qrinux LeadLens</div>
+          <div class="cf-brand__sub">Evidence Vault</div>
+        </div>
+      </div>
+      <button class="cf-icon-btn" id="btn-theme" title="Toggle theme" type="button">
+        <svg id="icon-theme-dark" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z"></path>
+        </svg>
+        <svg id="icon-theme-light" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z"></path>
+        </svg>
+      </button>
+    </header>
+
+    <section class="cf-toolbar" id="lead-vault-toolbar">
+      <div class="cf-toolbar__filters" id="lead-vault-filters">
+        <label class="cf-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path>
+          </svg>
+          <input id="search-input" type="search" placeholder="Search website, contact or note">
+        </label>
+        <select id="filter-type" class="cf-select">
+          <option value="">All types</option>
+          <option value="email">Emails</option>
+          <option value="social">Social links</option>
+        </select>
+        <select id="filter-status" class="cf-select">
+          <option value="">All contact statuses</option>
+          <option value="found">Found</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="checking">Checking</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <select id="filter-lead-stage" class="cf-select">
+          <option value="">All lead stages</option>
+          <option value="new">New</option>
+          <option value="qualified">Qualified</option>
+          <option value="contacted">Contacted</option>
+          <option value="follow-up">Follow-up</option>
+          <option value="won">Won</option>
+          <option value="not-needed">Not needed</option>
+          <option value="manual_review">Manual Review</option>
+          <option value="research_required">Research Required</option>
+          <option value="excluded">Excluded</option>
+        </select>
+        <select id="filter-priority" class="cf-select">
+          <option value="">All priorities</option>
+          <option value="high">High priority</option>
+          <option value="normal">Normal priority</option>
+          <option value="low">Low priority</option>
+          <option value="manual_review">Manual Review</option>
+          <option value="excluded">Excluded</option>
+        </select>
+        <select id="filter-contacted" class="cf-select">
+          <option value="">All contacted states</option>
+          <option value="no">Not contacted</option>
+          <option value="yes">Contacted</option>
+          <option value="later">Follow up later</option>
+        </select>
+        <select id="filter-industry" class="cf-select">
+          <option value="">All industries</option>
+        </select>
+        <select id="filter-country" class="cf-select">
+          <option value="">All countries</option>
+        </select>
+        <select id="filter-pain-point" class="cf-select">
+          <option value="">All pain points</option>
+          <option value="needs-redesign">Needs redesign</option>
+          <option value="weak-seo">Weak SEO</option>
+          <option value="no-cta">No CTA</option>
+          <option value="old-tech">Old tech</option>
+          <option value="no-trust-pages">No trust pages</option>
+          <option value="broken-images">Broken images</option>
+          <option value="poor-mobile">Poor mobile signal</option>
+          <option value="weak-local-seo">Weak local SEO</option>
+          <option value="poor-social-preview">Poor social preview</option>
+          <option value="weak-conversion">Weak conversion path</option>
+          <option value="missing-reviews">No review signal</option>
+          <option value="missing-about">No about/company page</option>
+          <option value="missing-map">No map signal</option>
+          <option value="broken-brand">Broken brand/logo</option>
+          <option value="thin-content">Thin content</option>
+        </select>
+        <select id="filter-presence" class="cf-select">
+          <option value="">All contact presence</option>
+          <option value="has-email">Has email</option>
+          <option value="no-email">No email</option>
+          <option value="has-social">Has social</option>
+          <option value="no-social">No social</option>
+          <option value="has-linkedin">Has LinkedIn</option>
+        </select>
+        <select id="filter-score-band" class="cf-select">
+          <option value="">All score bands</option>
+          <option value="opportunity-high">Improvement signal 70+</option>
+          <option value="opportunity-low">Improvement signal below 50</option>
+          <option value="seo-low">SEO evidence score below 65</option>
+          <option value="health-low">Website condition below 65</option>
+          <option value="lead-high">Contact readiness 70+</option>
+        </select>
+        <select id="filter-follow-up" class="cf-select">
+          <option value="">All follow-ups</option>
+          <option value="due">Due now</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="none">No follow-up date</option>
+        </select>
+        <select id="filter-sort" class="cf-select">
+          <option value="latest">Latest first</option>
+          <option value="opportunity">Highest improvement signal</option>
+          <option value="host">Website A-Z</option>
+          <option value="contacts">Most contacts</option>
+          <option value="emails">Most emails</option>
+          <option value="socials">Most socials</option>
+          <option value="seo">Highest SEO evidence score</option>
+          <option value="health">Highest website condition</option>
+        </select>
+        <label class="cf-page-size">
+          <span>Per page</span>
+          <select id="page-size" class="cf-select">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+            <option value="75">75</option>
+            <option value="100">100</option>
+          </select>
+        </label>
+      </div>
+      <div class="cf-toolbar__actions">
+        <span class="cf-count" id="result-count">0 websites</span>
+        <button class="cf-btn cf-btn--ghost cf-btn--compact cf-btn--toolbar-toggle" id="btn-toolbar-toggle" type="button" aria-expanded="true" aria-controls="lead-vault-filters">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3,5H21V7H3V5M7,11H17V13H7V11M10,17H14V19H10V17Z"></path></svg>
+          <span>Hide filters</span>
+        </button>
+        <button class="cf-btn cf-btn--ghost" id="btn-copy-emails" type="button" title="Copy visible lead emails to clipboard">Copy emails</button>
+        <button class="cf-btn cf-btn--ghost" id="btn-copy-socials" type="button" title="Copy visible social links to clipboard">Copy socials</button>
+        <button class="cf-btn cf-btn--ghost" id="btn-copy-tech" type="button" title="Copy visible technology reports to clipboard">Copy tech</button>
+        <button class="cf-btn cf-btn--ghost" id="btn-copy-template" type="button" title="Copy the selected rule-based review template to clipboard">Copy review template</button>
+        <button class="cf-btn cf-btn--ghost" id="btn-copy-ai-prompts" type="button" title="Copy captured evidence with clear external-review instructions; this does not call an API">Copy analysis prompts</button>
+        <button class="cf-btn cf-btn--ghost" id="btn-expand" type="button">Expand all</button>
+        <button class="cf-btn cf-btn--accent" id="btn-export" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg>
+          Export evidence spreadsheet
+        </button>
+        <button class="cf-btn cf-btn--accent" id="btn-download-raw-json" type="button" title="Download all captured website evidence as a single JSON backup-friendly file">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg>
+          Download complete evidence (JSON)
+        </button>
+        <button class="cf-btn cf-btn--accent" id="btn-download-compact-jsonl" type="button" title="Download one compact, normalized evidence record per website for external analysis or batch processing">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"></path></svg>
+          Download compact evidence (JSONL)
+        </button>
+        <button class="cf-btn cf-btn--ghost" id="btn-recalculate" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"></path></svg>
+          Refresh stored review aids
+        </button>
+        <button class="cf-btn cf-btn--danger" id="btn-clear" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"></path></svg>
+          Clear
+        </button>
+      </div>
+    </section>
+
+    <section class="cf-evidence-legend" aria-label="Evidence labels">
+      <div><span class="cf-evidence-dot cf-evidence-dot--verified"></span><strong>Verified evidence</strong><small>Directly captured from the website, structured data, links, headers, robots.txt, sitemap, or browser observations.</small></div>
+      <div><span class="cf-evidence-dot cf-evidence-dot--rules"></span><strong>Rule-based review aid</strong><small>Transparent local calculations that help sorting and review. They are not AI verdicts and should not replace human verification.</small></div>
+      <div><span class="cf-evidence-dot cf-evidence-dot--manual"></span><strong>Manual CRM field</strong><small>Your stage, priority, country, industry, tags, notes, and follow-up choices override automatic defaults.</small></div>
+    </section>
+
+    <main class="cf-main">
+      <section class="cf-backup-reminder hidden" id="backup-reminder">
+        <div>
+          <strong>Local backup reminder</strong>
+          <span>Your leads are stored in this browser. Download a JSON backup to protect your data.</span>
+        </div>
+        <span class="cf-backup-reminder__actions">
+          <button class="cf-btn cf-btn--accent" id="btn-backup-now" type="button">Download backup</button>
+          <button class="cf-icon-action" id="btn-backup-dismiss" type="button" title="Dismiss">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.3,5.71L12,12L18.3,18.29L16.89,19.7L10.59,13.41L4.29,19.7L2.88,18.29L9.17,12L2.88,5.71L4.29,4.3L10.59,10.59L16.89,4.3L18.3,5.71Z"></path></svg>
+          </button>
+        </span>
+      </section>
+      <section class="cf-browser-storage" id="browser-storage-panel" data-level="good">
+        <div class="cf-browser-storage__copy">
+          <span class="cf-browser-storage__eyebrow">Browser database</span>
+          <strong>Lead Vault stores scanned leads and CRM updates inside this Chrome profile</strong>
+          <span id="browser-storage-status">Checking browser database usage...</span>
+          <div class="cf-browser-storage__meter" aria-hidden="true">
+            <span id="browser-storage-meter-fill"></span>
+          </div>
+          <small id="browser-storage-details">CRM notes, stages, priorities, follow-ups, contacts, technologies, SEO evidence, and manual country or industry edits stay available in this browser.</small>
+        </div>
+        <div class="cf-browser-storage__actions">
+          <span class="cf-browser-storage__percent" id="browser-storage-percent">0%</span>
+          <button class="cf-btn cf-btn--ghost" id="btn-storage-refresh" type="button">Refresh usage</button>
+          <button class="cf-btn cf-btn--accent" id="btn-storage-backup" type="button">Download backup</button>
+        </div>
+      </section>
+      <section class="cf-bulk-import cf-bulk-import--pro">
+        <div class="cf-bulk-import__intro">
+          <span class="cf-bulk-import__eyebrow">Bulk scanner</span>
+          <strong>Scan many websites with controlled tabs</strong>
+          <span>Paste one URL per line. LeadLens opens controlled scan tabs, optionally rotates focus to improve difficult page loads, saves results in the browser database, closes finished tabs, and can resume from where you stopped.</span>
+          <div class="cf-bulk-import__tips">
+            <span>Tech stack</span>
+            <span>Contacts</span>
+            <span>SEO health</span>
+            <span>Rule-based review aids</span>
+            <span>Stop & resume</span>
+          </div>
+        </div>
+        <div class="cf-bulk-import__input-wrap">
+          <textarea id="bulk-urls" rows="6" placeholder="https://example.com&#10;restaurant.com&#10;clinic.org"></textarea>
+          <div class="cf-bulk-draft-note">
+            <span>URL list is saved automatically in this Chrome profile until you clear it or run Full System Reset. There is no fixed queue limit: LeadLens scans gradually with up to five active tabs. For best reliability, use one to three.</span>
+            <span class="cf-bulk-url-count" id="bulk-url-count" data-level="good">0 unique websites queued</span>
+            <button class="cf-btn cf-btn--sm cf-btn--ghost" id="btn-bulk-clear-list" type="button">Clear URL list</button>
+          </div>
+          <div class="cf-bulk-progress" id="bulk-progress" aria-hidden="true">
+            <span id="bulk-progress-bar"></span>
+          </div>
+        </div>
+        <div class="cf-bulk-import__panel">
+          <label class="cf-bulk-import__limit" for="bulk-concurrency">
+            <span>Open at once · performance safe</span>
+            <select class="cf-select" id="bulk-concurrency">
+              <option value="1" selected>1 website · safest</option>
+              <option value="2">2 websites · balanced</option>
+              <option value="3">3 websites · fast</option>
+              <option value="4">4 websites · faster</option>
+              <option value="5">5 websites · maximum</option>
+            </select>
+          </label>
+          <label class="cf-bulk-focus-option" for="bulk-cookie-consent">
+            <input id="bulk-cookie-consent" type="checkbox" checked>
+            <span>
+              <strong>Accept cookie banners during scans</strong>
+              <small>Clicks only clear cookie-consent buttons such as Accept all, Allow all, or Agree. It skips reject, preferences, and ambiguous buttons.</small>
+            </span>
+          </label>
+          <label class="cf-bulk-focus-option" for="bulk-focus-rotation">
+            <input id="bulk-focus-rotation" type="checkbox" checked>
+            <span>
+              <strong>Rotate active scan tabs</strong>
+              <small>Recommended for websites that only load correctly while their tab is active. LeadLens briefly switches between controlled scan tabs every 2 seconds and returns to this page when finished.</small>
+            </span>
+          </label>
+          <div class="cf-bulk-import__actions">
+            <button class="cf-btn cf-btn--accent" id="btn-bulk-import" type="button">Start scan</button>
+            <button class="cf-btn cf-btn--ghost cf-bulk-stop hidden" id="btn-bulk-stop" type="button">Stop scan</button>
+          </div>
+          <span id="bulk-import-status">Ready to scan. URL input and remaining progress stay saved locally. LeadLens processes large queues gradually with a maximum of five active tabs to keep Chrome responsive.</span>
+        </div>
+      </section>
+      <section class="cf-bulk-summary hidden" id="bulk-summary">
+        <div class="cf-bulk-summary__header">
+          <div>
+            <strong>Scan activity</strong>
+            <span>Live progress from the latest bulk scan.</span>
+          </div>
+          <span id="bulk-summary-progress">0%</span>
+        </div>
+        <div class="cf-bulk-summary__stats" id="bulk-summary-stats"></div>
+        <div class="cf-bulk-summary__list" id="bulk-summary-list"></div>
+      </section>
+      <div class="cf-pagination cf-pagination--top" id="pagination-top"></div>
+
+      <div class="cf-state" id="loading">
+        <div class="cf-spinner"></div>
+        <p>Loading website summaries...</p>
+      </div>
+
+      <div class="cf-state hidden" id="empty-state">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"></path></svg>
+        <h2>No scanned websites yet</h2>
+        <p>Click the on-page Scan button or use Bulk Scanner to collect public contacts, technical evidence, accessibility signals, page content, and website metadata.</p>
+      </div>
+
+      <div class="cf-state hidden" id="no-results">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5,14H14.71L14.43,13.73C15.41,12.59 16,11.11 16,9.5A6.5,6.5 0 0,0 9.5,3A6.5,6.5 0 0,0 3,9.5A6.5,6.5 0 0,0 9.5,16C11.11,16 12.59,15.41 13.73,14.43L14,14.71V15.5L19,20.5L20.5,19L15.5,14Z"></path></svg>
+        <h2>No matching websites</h2>
+        <p>Change the search text or review filters.</p>
+      </div>
+
+      <div class="cf-sites hidden" id="sites-wrap">
+        <div id="sites-list"></div>
+        <div class="cf-pagination" id="pagination"></div>
+      </div>
+    </main>
+
+    <div class="cf-overlay hidden" id="confirm-overlay">
+      <div class="cf-dialog">
+        <p>Clear all <strong id="confirm-count">0</strong> saved websites and evidence?</p>
+        <div class="cf-dialog__actions">
+          <button class="cf-btn cf-btn--ghost" id="confirm-cancel" type="button">Cancel</button>
+          <button class="cf-btn cf-btn--danger" id="confirm-ok" type="button">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="cf-footer">Built by Qrinux Inc.</footer>
+
+    <script src="../vendor/public-suffix-data.js"></script>
+  <script src="../js/quality-runtime.js"></script>
+    <script src="../js/intelligence-runtime.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/contacts.js"></script>
+  </body>
+</html>
