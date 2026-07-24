@@ -142,6 +142,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PublicNav />
       <Outlet />
     </QueryClientProvider>
   );
