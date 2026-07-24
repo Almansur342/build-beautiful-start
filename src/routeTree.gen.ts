@@ -10,9 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LegalRouteImport } from './routes/legal'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as CareersRouteImport } from './routes/careers'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
@@ -35,9 +39,24 @@ const LegalRoute = LegalRouteImport.update({
   path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogRoute = BlogRouteImport.update({
@@ -48,6 +67,11 @@ const BlogRoute = BlogRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -133,9 +157,13 @@ const ApiPublicPaymentsWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/changelog': typeof ChangelogRoute
   '/contact': typeof ContactRoute
+  '/docs': typeof DocsRoute
   '/legal': typeof LegalRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/api-key': typeof AuthenticatedApiKeyRoute
@@ -154,9 +182,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/changelog': typeof ChangelogRoute
   '/contact': typeof ContactRoute
+  '/docs': typeof DocsRoute
   '/legal': typeof LegalRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/api-key': typeof AuthenticatedApiKeyRoute
@@ -177,9 +209,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/careers': typeof CareersRoute
+  '/changelog': typeof ChangelogRoute
   '/contact': typeof ContactRoute
+  '/docs': typeof DocsRoute
   '/legal': typeof LegalRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/api-key': typeof AuthenticatedApiKeyRoute
@@ -200,9 +236,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/auth'
     | '/blog'
+    | '/careers'
+    | '/changelog'
     | '/contact'
+    | '/docs'
     | '/legal'
     | '/admin'
     | '/api-key'
@@ -221,9 +261,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth'
     | '/blog'
+    | '/careers'
+    | '/changelog'
     | '/contact'
+    | '/docs'
     | '/legal'
     | '/admin'
     | '/api-key'
@@ -243,9 +287,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/about'
     | '/auth'
     | '/blog'
+    | '/careers'
+    | '/changelog'
     | '/contact'
+    | '/docs'
     | '/legal'
     | '/_authenticated/admin'
     | '/_authenticated/api-key'
@@ -266,9 +314,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRouteWithChildren
+  CareersRoute: typeof CareersRoute
+  ChangelogRoute: typeof ChangelogRoute
   ContactRoute: typeof ContactRoute
+  DocsRoute: typeof DocsRoute
   LegalRoute: typeof LegalRouteWithChildren
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicScanAuthorizeRoute: typeof ApiPublicScanAuthorizeRoute
@@ -283,11 +335,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact': {
       id: '/contact'
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog': {
@@ -302,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -471,9 +551,13 @@ const LegalRouteWithChildren = LegalRoute._addFileChildren(LegalRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   BlogRoute: BlogRouteWithChildren,
+  CareersRoute: CareersRoute,
+  ChangelogRoute: ChangelogRoute,
   ContactRoute: ContactRoute,
+  DocsRoute: DocsRoute,
   LegalRoute: LegalRouteWithChildren,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicScanAuthorizeRoute: ApiPublicScanAuthorizeRoute,
