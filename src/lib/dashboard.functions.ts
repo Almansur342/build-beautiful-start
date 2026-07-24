@@ -22,7 +22,7 @@ export const getMyDashboardData = createServerFn({ method: 'GET' })
       supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
 
-    const settings: Record<string, unknown> = {};
+    const settings: Record<string, any> = {};
     for (const s of settingsRes.data ?? []) settings[s.key] = s.value;
 
     const roles = (roleRes.data ?? []).map((r) => r.role);

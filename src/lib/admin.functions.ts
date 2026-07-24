@@ -14,7 +14,7 @@ export const adminGetOverview = createServerFn({ method: 'GET' })
     const [users, keys, scansToday, totalScans, plans, settings] = await Promise.all([
       supabaseAdmin.from('profiles').select('id, email, full_name, banned, created_at').order('created_at', { ascending: false }).limit(200),
       supabaseAdmin.from('api_keys').select('id, user_id, key_prefix, device_fingerprint, bound_at, last_used_at, revoked_at'),
-      supabaseAdmin.rpc('get_today_scan_count', { _user_id: '00000000-0000-0000-0000-000000000000' }).then(() => null).catch(() => null),
+      supabaseAdmin.rpc('get_today_scan_count', { _user_id: '00000000-0000-0000-0000-000000000000' }).then((r: any) => r).then(null, () => null),
       supabaseAdmin.from('scan_logs').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('plans').select('*').order('sort_order'),
       supabaseAdmin.from('app_settings').select('*'),
