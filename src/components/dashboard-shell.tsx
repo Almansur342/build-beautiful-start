@@ -13,11 +13,13 @@ import {
   LifeBuoy,
   Settings,
   Shield,
+  Star,
   LogOut,
   Menu,
   X,
   ChevronRight,
 } from "lucide-react";
+
 
 const NAV = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -25,8 +27,10 @@ const NAV = [
   { to: "/devices", label: "Devices", icon: Laptop },
   { to: "/billing", label: "Billing", icon: Receipt },
   { to: "/support", label: "Support", icon: LifeBuoy },
+  { to: "/feedback", label: "Feedback", icon: Star },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
+
 
 export function DashboardShell({
   title,
@@ -89,17 +93,15 @@ export function DashboardShell({
               <div className="pt-4 pb-1 px-3 text-[10px] uppercase tracking-wider text-background/40">Admin</div>
               <Link
                 to="/admin"
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                  pathname === "/admin"
-                    ? "bg-background text-foreground font-medium"
-                    : "text-background/70 hover:text-background hover:bg-white/5"
-                }`}
+                className="flex items-center gap-3 px-3 py-2 text-sm transition bg-emerald-400 text-[#0b1220] font-medium"
               >
-                <Shield className="h-4 w-4" /> Admin Panel
+                <Shield className="h-4 w-4" /> Open Super Admin →
               </Link>
             </>
           )}
+
         </nav>
+
         <div className="p-3 border-t border-white/10">
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
             <div className="h-9 w-9 rounded-full bg-background text-foreground grid place-items-center text-xs font-semibold">
@@ -166,11 +168,12 @@ export function DashboardShell({
                 <Link
                   to="/admin"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-background/70"
+                  className="flex items-center gap-3 px-3 py-2 text-sm bg-emerald-400 text-[#0b1220] font-medium"
                 >
-                  <Shield className="h-4 w-4" /> Admin Panel
+                  <Shield className="h-4 w-4" /> Open Super Admin →
                 </Link>
               )}
+
               <button
                 onClick={signOut}
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-background/70 w-full text-left"
