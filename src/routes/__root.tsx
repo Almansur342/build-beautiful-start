@@ -77,14 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Build Something Beautiful" },
-      { name: "description", content: "A simple starter project ready for your next instructions." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Build Something Beautiful" },
-      { property: "og:description", content: "A simple starter project ready for your next instructions." },
+      { title: "Qrinux LeadLens — Evidence-first lead qualification" },
+      { name: "description", content: "Website evidence, lead qualification, and outreach readiness in one clean workflow." },
+      { name: "author", content: "Qrinux" },
+      { property: "og:title", content: "Qrinux LeadLens" },
+      { property: "og:description", content: "Website evidence, lead qualification, and outreach readiness in one clean workflow." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
