@@ -344,7 +344,7 @@ function Integrations() {
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
         <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground mb-3">Easy integration</div>
         <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight max-w-2xl mx-auto">
-          Detects 300+ technologies out of the box.
+          Detects 3000+ technologies out of the box.
         </h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
           Every scan fingerprints the site's stack, marketing tools, analytics, and payment layer so you
