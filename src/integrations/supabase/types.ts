@@ -14,16 +14,236 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      api_keys: {
+        Row: {
+          bound_at: string | null
+          created_at: string
+          device_fingerprint: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bound_at?: string | null
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bound_at?: string | null
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          created_at: string
+          daily_scan_limit: number | null
+          id: string
+          is_active: boolean
+          name: string
+          price_usd: number
+          slug: string
+          sort_order: number
+          stripe_price_id: string | null
+          validity_days: number | null
+        }
+        Insert: {
+          created_at?: string
+          daily_scan_limit?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_usd?: number
+          slug: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          created_at?: string
+          daily_scan_limit?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_usd?: number
+          slug?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          validity_days?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          banned: boolean
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          banned?: boolean
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          banned?: boolean
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      scan_logs: {
+        Row: {
+          api_key_id: string | null
+          id: string
+          scanned_at: string
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          id?: string
+          scanned_at?: string
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          api_key_id?: string | null
+          id?: string
+          scanned_at?: string
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_today_scan_count: { Args: { _user_id: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +370,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "user"],
+    },
   },
 } as const
