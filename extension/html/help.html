@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Qrinux LeadLens - User Guide</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/utils.js"></script>
+  <script src="../js/help.js"></script>
+</head>
+<body class="body__options">
+  <main class="settings-shell help-shell">
+    <header class="settings-hero help-hero">
+      <img class="brand-logo" src="../images/brand-logo.png" alt="Qrinux LeadLens logo">
+      <div>
+        <h1>LeadLens User Guide</h1>
+        <p>Learn how to scan websites, review public evidence, qualify leads, and manage outreach preparation inside your browser.</p>
+        <div class="doc-meta"><span>Browser CRM</span><span>Public website evidence</span><span>Bulk scan resume</span><span>Local-first storage</span></div>
+      </div>
+      <nav class="help-nav"><a href="contacts.html">Evidence Vault</a><a href="options.html">Settings</a><a href="about.html">About</a></nav>
+    </header>
+    <div class="help-layout">
+      <aside class="help-toc" aria-label="Guide sections">
+        <a href="#quick-start">Quick start</a>
+        <a href="#scanning">Website scanning</a>
+        <a href="#bulk-scanner">Bulk scanner</a>
+        <a href="#lead-vault">Evidence Vault</a>
+        <a href="#crm">Lead management</a>
+        <a href="#contacts">Contacts</a>
+        <a href="#performance">Performance-safe workflow</a>
+        <a href="#signals">SEO and website signals</a>
+        <a href="#copy-export">Copy, export and backup</a>
+        <a href="#storage">Storage and reset</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+      </aside>
+      <section class="help-content">
+        <section class="help-section" id="quick-start"><span class="help-eyebrow">Start here</span><h2>Quick start workflow</h2><ol class="help-steps"><li>Open a target website and click the floating <strong>Scan</strong> button, or paste multiple URLs into Bulk Scanner.</li><li>Open Evidence Vault and expand a website card. The <strong>Manage this lead</strong> panel appears first.</li><li>Review emails, social links, phones, technologies, SEO checks, opportunity signals, and domain-age evidence.</li><li>Set stage, priority, contacted status, industry, country, follow-up date, tags, pain labels, and notes.</li><li>Use clipboard buttons for reusable text. Use Export XLSX or Download backup only when you need a file.</li></ol></section>
+        <section class="help-section" id="scanning"><span class="help-eyebrow">Discovery</span><h2>Website scanning</h2><div class="help-grid"><article><h3>Public contact discovery</h3><p>LeadLens captures public emails, social profiles, and phone or WhatsApp-like contact paths from the visible page, links, footer, attributes, structured data, and selected same-domain contact or about pages.</p></article><article><h3>Technology detection</h3><p>Common CMS, frameworks, analytics, CDN, ecommerce, security, and implementation signals help you understand the public website stack.</p></article><article><h3>SEO and conversion evidence</h3><p>Title, description, headings, images, links, schema, robots.txt, sitemap, local performance observations, CTA paths, trust signals, and website-improvement notes remain reviewable.</p></article><article><h3>Partial or failed scans</h3><p>If a website blocks loading or times out, LeadLens keeps a reviewable record instead of silently dropping the URL. You can retry later.</p></article></div></section>
+        <section class="help-section" id="bulk-scanner"><span class="help-eyebrow">Batch workflow</span><h2>Bulk scanner with resumable URL workspace</h2><p>Paste one website per line. The URL list is saved automatically inside this Chrome profile. If the browser closes, the computer restarts, or scanning is paused, remaining URLs and recent progress are restored when Evidence Vault opens again.</p><div class="help-callout"><strong>Focus rotation</strong><span>Keep Rotate active scan tabs enabled for websites that load correctly only while their tab is active. LeadLens briefly switches between controlled scan tabs and returns to Evidence Vault after the batch finishes.</span></div></section>
+        <section class="help-section" id="lead-vault"><span class="help-eyebrow">Workspace</span><h2>Evidence Vault</h2><p>Evidence Vault is the central browser-based workspace. It loads a lightweight paginated index first. Full SEO, technology, contact, and CRM evidence is loaded only when you expand a lead card, which keeps large datasets responsive.</p></section>
+        <section class="help-section" id="crm"><span class="help-eyebrow">CRM</span><h2>Manual lead decisions override automatic defaults</h2><p>LeadLens can suggest initial country, industry, stage, and priority values from public evidence. Once you manually select a value, your saved choice wins. Notes, tags, follow-up dates, manual scores, and pain labels also persist locally.</p></section>
+        <section class="help-section" id="contacts"><span class="help-eyebrow">Contacts</span><h2>Email, social, and phone evidence</h2><p>Direct website-domain emails are prioritized. Suspicious placeholder addresses, malformed values, asset-like values, unrelated social-post links, and implausible numeric IDs are filtered where possible. Email send confidence is a local quality estimate only; it does not guarantee mailbox existence or delivery. Source labels remain available so you can verify where each public contact was found.</p></section>
+        <section class="help-section" id="signals"><span class="help-eyebrow">Evidence</span><h2>SEO, technical, domain-age, and opportunity signals</h2><p>Opportunity score focuses on public website-improvement potential. Outreach eligibility focuses on whether a usable contact path exists and whether the lead should be reviewed, contacted, or excluded. Free local SEO summary cards show indexability, canonical, schema, image-alt coverage, local SEO coverage, and locally observed speed. These are screening aids, not guarantees.</p></section>
+        <section class="help-section" id="performance"><span class="help-eyebrow">Stability</span><h2>Performance-safe loading for large datasets</h2><p>LeadLens keeps the main list lightweight and loads complete evidence on demand when a card is expanded. Bulk scanner accepts large saved URL queues and opens websites gradually with a configurable maximum of five active tabs. Progress persists in the local browser database so interrupted queues can resume. Start with one or two active tabs when testing difficult websites. Local speed values are browser observations, not paid external lab reports.</p></section>
+        <section class="help-section" id="copy-export"><span class="help-eyebrow">Output</span><h2>Copy, export, and backup</h2><div class="help-grid"><article><h3>Copy buttons</h3><p>Copy emails, socials, technologies, raw lead templates, and ChatGPT-ready raw data place evidence on your clipboard. They do not download files.</p></article><article><h3>Export XLSX</h3><p>Use Export evidence spreadsheet when you need a spreadsheet or CSV containing visible filtered lead evidence.</p></article><article><h3>Download backup</h3><p>Use Download backup before major cleanup or reset actions. The JSON file is a safety copy of local browser data.</p></article></div></section>
+        <section class="help-section" id="storage"><span class="help-eyebrow">Local storage</span><h2>Browser database, cleanup, and reset</h2><p>Lead records stay inside this Chrome profile. Storage usage warnings appear as the browser database grows. Use Clear when you only want to remove saved leads. Use Full System Reset in Settings only when you want a fresh installation state.</p></section>
+        <section class="help-section" id="privacy"><span class="help-eyebrow">Privacy</span><h2>Local-first by design</h2><p>Saved lead records are stored locally in the browser database unless you intentionally copy content, export an XLSX spreadsheet, or download a JSON backup. LeadLens works with public website evidence.</p></section>
+        <section class="help-section" id="troubleshooting"><span class="help-eyebrow">Support</span><h2>Troubleshooting checklist</h2><ul class="doc-checklist"><li>Retry websites that timed out or returned a verification page.</li><li>Keep focus rotation enabled for difficult bulk scans.</li><li>Download a backup before cleanup or reset.</li><li>Use Full System Reset only when you want to remove all local records and settings.</li></ul></section>
+      </section>
+    </div>
+    <footer class="settings-footer"><a href="contacts.html">Open Evidence Vault</a><a href="options.html">Open Settings</a><a href="about.html">About LeadLens</a><span>Built by Qrinux Inc.</span></footer>
+  </main>
+</body>
+</html>

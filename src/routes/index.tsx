@@ -135,6 +135,10 @@ function Nav() {
           <a href="#accuracy" className="hover:text-foreground">Accuracy</a>
           <a href="#report" className="hover:text-foreground">Report</a>
         </nav>
+        <div className="flex items-center gap-2">
+          <a href="/auth" className="text-sm text-muted-foreground hover:text-foreground">Sign in</a>
+          <a href="/auth" className="inline-flex h-8 items-center rounded-md bg-foreground px-3 text-xs font-medium text-background hover:opacity-90">Get started</a>
+        </div>
       </div>
     </header>
   );
