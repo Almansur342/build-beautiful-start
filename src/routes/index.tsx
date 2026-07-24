@@ -332,12 +332,37 @@ function BuildFor() {
    EASY INTEGRATION — detected technologies
    ============================================================= */
 function Integrations() {
-  const techs = [
-    "WordPress", "Shopify", "Webflow", "Wix", "Squarespace", "Ghost",
-    "React", "Next.js", "Vue", "Angular", "Svelte", "Astro",
-    "Google Analytics", "GTM", "HubSpot", "Mailchimp", "Intercom", "Segment",
-    "Stripe", "PayPal", "Klaviyo", "Cloudflare", "AWS", "Vercel",
-    "Framer", "Elementor", "WooCommerce", "Magento", "Salesforce", "Zendesk",
+  const techs: { name: string; slug: string; color: string }[] = [
+    { name: "WordPress", slug: "wordpress", color: "21759B" },
+    { name: "Shopify", slug: "shopify", color: "7AB55C" },
+    { name: "Webflow", slug: "webflow", color: "146EF5" },
+    { name: "Wix", slug: "wix", color: "0C6EFC" },
+    { name: "Squarespace", slug: "squarespace", color: "000000" },
+    { name: "Ghost", slug: "ghost", color: "15171A" },
+    { name: "React", slug: "react", color: "61DAFB" },
+    { name: "Next.js", slug: "nextdotjs", color: "000000" },
+    { name: "Vue", slug: "vuedotjs", color: "4FC08D" },
+    { name: "Angular", slug: "angular", color: "DD0031" },
+    { name: "Svelte", slug: "svelte", color: "FF3E00" },
+    { name: "Astro", slug: "astro", color: "BC52EE" },
+    { name: "Google Analytics", slug: "googleanalytics", color: "E37400" },
+    { name: "Google Tag Manager", slug: "googletagmanager", color: "246FDB" },
+    { name: "HubSpot", slug: "hubspot", color: "FF7A59" },
+    { name: "Mailchimp", slug: "mailchimp", color: "FFE01B" },
+    { name: "Intercom", slug: "intercom", color: "1F8DED" },
+    { name: "Segment", slug: "segment", color: "52BD95" },
+    { name: "Stripe", slug: "stripe", color: "635BFF" },
+    { name: "PayPal", slug: "paypal", color: "003087" },
+    { name: "Klaviyo", slug: "klaviyo", color: "1B1B1B" },
+    { name: "Cloudflare", slug: "cloudflare", color: "F38020" },
+    { name: "AWS", slug: "amazonwebservices", color: "232F3E" },
+    { name: "Vercel", slug: "vercel", color: "000000" },
+    { name: "Framer", slug: "framer", color: "0055FF" },
+    { name: "Elementor", slug: "elementor", color: "92003B" },
+    { name: "WooCommerce", slug: "woocommerce", color: "96588A" },
+    { name: "Magento", slug: "magento", color: "EE672F" },
+    { name: "Salesforce", slug: "salesforce", color: "00A1E0" },
+    { name: "Zendesk", slug: "zendesk", color: "03363D" },
   ];
   return (
     <section id="integrations" className="bg-muted/40 border-y border-border">
@@ -352,8 +377,17 @@ function Integrations() {
         </p>
         <div className="mt-12 grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-3">
           {techs.map((t) => (
-            <div key={t} className="rounded-2xl border border-border bg-card px-3 py-4 text-sm font-medium">
-              {t}
+            <div
+              key={t.slug}
+              title={t.name}
+              className="rounded-2xl border border-border bg-card h-20 grid place-items-center transition hover:shadow-sm"
+            >
+              <img
+                src={`https://cdn.simpleicons.org/${t.slug}/${t.color}`}
+                alt={`${t.name} logo`}
+                loading="lazy"
+                className="h-8 w-auto max-w-[60%] object-contain"
+              />
             </div>
           ))}
         </div>
