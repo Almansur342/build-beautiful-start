@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listMyTickets,
@@ -10,36 +10,35 @@ import {
   replyTicket,
   setTicketStatus,
 } from "@/lib/tickets.functions";
+import { getMyDashboardData } from "@/lib/dashboard.functions";
+import { getAvatarSignedUrl } from "@/lib/profile.functions";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { ChatThread, type ChatParty } from "@/components/chat-thread";
 import { Button } from "@/components/ui/button";
-import { Send, Plus, LifeBuoy, CheckCircle2, Clock, X } from "lucide-react";
+import { Plus, LifeBuoy, X, CheckCircle2, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/support")({
   head: () => ({ meta: [{ title: "Support — Qrinux LeadLens" }] }),
   component: SupportPage,
 });
 
-function statusChip(status: string) {
-  const map: Record<string, { label: string; cls: string; icon: any }> = {
-    open: { label: "Open", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: Clock },
-    pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
-    resolved: { label: "Resolved", cls: "bg-blue-50 text-blue-700 border-blue-200", icon: CheckCircle2 },
-    closed: { label: "Closed", cls: "bg-muted text-muted-foreground border-border", icon: X },
+function statusPill(status: string) {
+  const map: Record<string, string> = {
+    open: "bg-emerald-50 text-emerald-700",
+    pending: "bg-amber-50 text-amber-700",
+    resolved: "bg-blue-50 text-blue-700",
+    closed: "bg-neutral-100 text-neutral-500",
   };
-  const s = map[status] ?? map.open;
-  const Icon = s.icon;
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 border font-medium ${s.cls}`}>
-      <Icon className="h-3 w-3" /> {s.label}
-    </span>
-  );
+  return <span className={`text-[10px] px-2 py-0.5 font-medium uppercase tracking-wider ${map[status] ?? map.open}`}>{status}</span>;
 }
 
 function SupportPage() {
   const qc = useQueryClient();
   const fetchTickets = useServerFn(listMyTickets);
+  const fetchDash = useServerFn(getMyDashboardData);
   const create = useServerFn(createTicket);
   const tickets = useQuery({ queryKey: ["tickets"], queryFn: () => fetchTickets() });
+  const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => fetchDash() });
 
   const [selected, setSelected] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -75,58 +74,48 @@ function SupportPage() {
     },
   });
 
+  const list = tickets.data ?? [];
+  const active = list.filter((t: any) => t.status !== "closed" && t.status !== "resolved");
+  const archived = list.filter((t: any) => t.status === "closed" || t.status === "resolved");
+
   return (
-    <DashboardShell title="Support" description="Ticketing-based support. Every request gets its own thread with our team.">
-      <div className="grid lg:grid-cols-[20rem_1fr] gap-4 h-[75vh]">
-        {/* Ticket list */}
-        <div className="border border-border bg-background flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-border flex items-center justify-between">
-            <div className="text-sm font-medium">Your tickets</div>
+    <DashboardShell title="Support" description="Each conversation is its own ticket. Reopen anytime or start a new one.">
+      <div className="grid lg:grid-cols-[22rem_1fr] gap-6 h-[76vh]">
+        {/* Ticket list — no borders, subtle surface */}
+        <div className="bg-background shadow-sm flex flex-col overflow-hidden">
+          <div className="p-4 flex items-center justify-between">
+            <div className="text-sm font-semibold">Your tickets</div>
             <Button size="sm" onClick={() => setShowNew(true)} className="h-8">
               <Plus className="h-3.5 w-3.5 mr-1" /> New
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {tickets.isLoading && <div className="p-4 text-xs text-muted-foreground">Loading…</div>}
-            {tickets.data && tickets.data.length === 0 && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
+            {list.length === 0 && (
+              <div className="p-10 text-center text-sm text-muted-foreground">
                 <LifeBuoy className="h-8 w-8 mx-auto mb-2 opacity-40" />
                 No tickets yet.
+                <div className="mt-3">
+                  <Button size="sm" onClick={() => setShowNew(true)}>Open your first ticket</Button>
+                </div>
               </div>
             )}
-            {(tickets.data ?? []).map((t: any) => (
-              <button
-                key={t.id}
-                onClick={() => setSelected(t.id)}
-                className={`w-full text-left p-3 border-b border-border hover:bg-muted/40 ${
-                  selected === t.id ? "bg-muted/50" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="font-medium text-sm truncate flex-1">{t.subject}</div>
-                  {t.unread_for_user > 0 && (
-                    <span className="h-2 w-2 bg-emerald-500 mt-1.5 shrink-0" />
-                  )}
-                </div>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  {statusChip(t.status)}
-                  <div className="text-[10px] text-muted-foreground">
-                    {new Date(t.last_message_at ?? t.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-              </button>
+            {active.length > 0 && <Section label={`Active · ${active.length}`} icon={Clock} />}
+            {active.map((t: any) => (
+              <TicketItem key={t.id} t={t} active={selected === t.id} onSelect={() => setSelected(t.id)} />
+            ))}
+            {archived.length > 0 && <Section label={`Resolved · ${archived.length}`} icon={CheckCircle2} />}
+            {archived.map((t: any) => (
+              <TicketItem key={t.id} t={t} active={selected === t.id} onSelect={() => setSelected(t.id)} />
             ))}
           </div>
         </div>
 
-        {/* Thread */}
-        <div className="border border-border bg-background flex flex-col overflow-hidden">
+        <div className="bg-background shadow-sm overflow-hidden">
           {selected ? (
-            <TicketThread ticketId={selected} />
+            <TicketThread ticketId={selected} ticket={list.find((t: any) => t.id === selected)} profile={dash.data?.profile} />
           ) : (
-            <div className="flex-1 grid place-items-center text-sm text-muted-foreground">
-              Select a ticket or create a new one.
-            </div>
+            <div className="h-full grid place-items-center text-sm text-muted-foreground">Select a ticket or open a new one.</div>
           )}
         </div>
       </div>
@@ -136,90 +125,104 @@ function SupportPage() {
   );
 }
 
-function TicketThread({ ticketId }: { ticketId: string }) {
+function Section({ label, icon: Icon }: { label: string; icon: any }) {
+  return (
+    <div className="px-4 py-2 text-[10px] uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-2 bg-neutral-50">
+      <Icon className="h-3 w-3" /> {label}
+    </div>
+  );
+}
+
+function TicketItem({ t, active, onSelect }: { t: any; active: boolean; onSelect: () => void }) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full text-left p-3 hover:bg-neutral-50 transition ${active ? "bg-neutral-100" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-medium text-sm truncate flex-1">{t.subject}</div>
+        {t.unread_for_user > 0 && <span className="h-2 w-2 bg-emerald-500 mt-1.5 shrink-0" />}
+      </div>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        {statusPill(t.status)}
+        <div className="text-[10px] text-muted-foreground">
+          {new Date(t.last_message_at ?? t.created_at).toLocaleDateString([], { month: "short", day: "numeric" })}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function TicketThread({ ticketId, ticket, profile }: { ticketId: string; ticket: any; profile: any }) {
   const qc = useQueryClient();
   const fetchMsgs = useServerFn(listTicketMessages);
   const reply = useServerFn(replyTicket);
   const setStatus = useServerFn(setTicketStatus);
-  const [text, setText] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
+  const signAvatar = useServerFn(getAvatarSignedUrl);
+  const [myAvatar, setMyAvatar] = useState<string | null>(null);
 
   const msgs = useQuery({
     queryKey: ["ticket-messages", ticketId],
     queryFn: () => fetchMsgs({ data: { ticketId } }),
   });
 
+  useEffect(() => {
+    if (profile?.avatar_url) signAvatar({ data: { path: profile.avatar_url } }).then((r: any) => setMyAvatar(r.url)).catch(() => {});
+    else setMyAvatar(null);
+  }, [profile, signAvatar]);
+
   const replyMut = useMutation({
     mutationFn: (body: string) => reply({ data: { ticketId, body } }),
     onSuccess: () => {
-      setText("");
       qc.invalidateQueries({ queryKey: ["ticket-messages", ticketId] });
       qc.invalidateQueries({ queryKey: ["tickets"] });
     },
   });
 
-  const closeMut = useMutation({
-    mutationFn: () => setStatus({ data: { ticketId, status: "closed" } }),
+  const statusMut = useMutation({
+    mutationFn: (status: "resolved" | "closed" | "open") => setStatus({ data: { ticketId, status } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tickets"] }),
   });
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs.data]);
+  const closed = ticket?.status === "closed" || ticket?.status === "resolved";
+
+  const me: ChatParty = {
+    role: "user",
+    name: profile?.full_name ?? profile?.email ?? "You",
+    email: profile?.email,
+    avatarUrl: myAvatar,
+  };
+  const support: ChatParty = { role: "support", name: "Qrinux Support" };
 
   return (
-    <>
-      <div className="border-b border-border p-3 flex items-center justify-between">
-        <div className="text-sm font-medium">Ticket #{ticketId.slice(0, 8)}</div>
-        <Button variant="outline" size="sm" onClick={() => closeMut.mutate()} className="h-8">
-          Close ticket
-        </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted/20">
-        {msgs.isLoading && <div className="text-xs text-muted-foreground text-center">Loading…</div>}
-        {(msgs.data ?? []).map((m: any) => (
-          <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[75%] px-4 py-2.5 text-sm border ${
-                m.sender === "user"
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-background border-border"
-              }`}
-            >
-              <div className="whitespace-pre-wrap break-words">{m.body}</div>
-              <div className={`text-[10px] mt-1 ${m.sender === "user" ? "text-background/60" : "text-muted-foreground"}`}>
-                {new Date(m.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
-              </div>
-            </div>
+    <ChatThread
+      messages={msgs.data ?? []}
+      viewerRole="user"
+      user={me}
+      support={support}
+      disabled={closed}
+      sending={replyMut.isPending}
+      onSend={(v) => replyMut.mutate(v)}
+      placeholder="Type your message… (Enter to send, Shift+Enter for newline)"
+      header={
+        <div className="min-w-0">
+          <div className="text-sm font-semibold truncate">{ticket?.subject ?? "Conversation"}</div>
+          <div className="text-[11px] text-muted-foreground truncate flex items-center gap-2 mt-0.5">
+            {ticket?.status && statusPill(ticket.status)}
+            <span>Ticket #{ticketId.slice(0, 8)}</span>
           </div>
-        ))}
-        <div ref={endRef} />
-      </div>
-      <div className="border-t border-border p-3 flex items-end gap-2">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              if (text.trim()) replyMut.mutate(text.trim());
-            }
-          }}
-          placeholder="Reply to this ticket… (Enter to send)"
-          rows={2}
-          maxLength={2000}
-          className="flex-1 resize-none border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-        />
-        <Button
-          onClick={() => text.trim() && replyMut.mutate(text.trim())}
-          disabled={!text.trim() || replyMut.isPending}
-          size="icon"
-          className="h-10 w-10"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    </>
+        </div>
+      }
+      headerActions={
+        closed ? (
+          <Button variant="outline" size="sm" onClick={() => statusMut.mutate("open")}>Reopen</Button>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => statusMut.mutate("resolved")}>
+            Mark resolved
+          </Button>
+        )
+      }
+    />
   );
 }
 
@@ -230,59 +233,45 @@ function NewTicketModal({ onClose, onSubmit, pending }: { onClose: () => void; o
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center z-50 p-4">
-      <div className="bg-background border border-border w-full max-w-lg">
-        <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="bg-background w-full max-w-lg shadow-xl">
+        <div className="p-4 border-b border-border/60 flex items-center justify-between">
           <div className="font-semibold">New support ticket</div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
-          </button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Subject</label>
-            <input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              maxLength={200}
-              className="mt-1 w-full border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-              placeholder="Short description of the issue"
-            />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Priority</label>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className="mt-1 w-full border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-            >
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+        <div className="p-5 space-y-4">
+          <Field label="Subject">
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200}
+              className="w-full bg-neutral-100 focus:bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-foreground"
+              placeholder="Short summary" />
+          </Field>
+          <Field label="Priority">
+            <select value={priority} onChange={(e) => setPriority(e.target.value)}
+              className="w-full bg-neutral-100 focus:bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-foreground">
+              <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option>
             </select>
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Message</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={5}
-              maxLength={2000}
-              className="mt-1 w-full border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
-              placeholder="Describe your issue in detail…"
-            />
-          </div>
+          </Field>
+          <Field label="Message">
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} maxLength={2000}
+              className="w-full bg-neutral-100 focus:bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-foreground resize-none"
+              placeholder="Describe your issue…" />
+          </Field>
         </div>
-        <div className="p-4 border-t border-border flex justify-end gap-2">
+        <div className="p-4 border-t border-border/60 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={() => onSubmit({ subject, body, priority })}
-            disabled={!subject.trim() || !body.trim() || pending}
-          >
-            {pending ? "Creating…" : "Create ticket"}
+          <Button onClick={() => onSubmit({ subject, body, priority })} disabled={!subject.trim() || !body.trim() || pending}>
+            {pending ? "Creating…" : "Send message"}
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
+      <div className="mt-1">{children}</div>
     </div>
   );
 }

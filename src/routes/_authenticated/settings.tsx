@@ -118,11 +118,27 @@ function SettingsPage() {
               </span>
             )}
           </div>
-          <label className="inline-flex items-center gap-2 text-sm cursor-pointer border border-border px-3 py-2 hover:bg-muted">
-            <Upload className="h-4 w-4" /> {uploading ? "Uploading…" : "Upload avatar"}
-            <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" disabled={uploading} />
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="inline-flex items-center gap-2 text-sm cursor-pointer border border-border px-3 py-2 hover:bg-muted">
+              <Upload className="h-4 w-4" /> {uploading ? "Uploading…" : avatarUrl ? "Change photo" : "Upload photo"}
+              <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" disabled={uploading} />
+            </label>
+            {avatarUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  await updateFn({ data: { avatar_url: null } });
+                  setAvatarUrl(null);
+                  qc.invalidateQueries({ queryKey: ["dashboard"] });
+                }}
+              >
+                Remove
+              </Button>
+            )}
+          </div>
         </div>
+
 
         <div className="grid sm:grid-cols-2 gap-4">
           <TextField label="Full name" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
