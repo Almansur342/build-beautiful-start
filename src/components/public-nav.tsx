@@ -75,36 +75,43 @@ export function PublicNav() {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-border bg-background">
-          <div className="px-6 py-4 flex flex-col gap-3">
-            {LINKS.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                {l.label}
-              </Link>
-            ))}
-            <div className="pt-3 border-t border-border flex gap-2">
-              {authed ? (
-                <Link to="/dashboard" onClick={() => setOpen(false)} className="flex-1">
-                  <Button className="w-full">Dashboard</Button>
+        <>
+          <div
+            className="md:hidden fixed inset-0 top-16 z-40 bg-foreground/20 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div className="md:hidden absolute left-0 right-0 top-16 z-50 border-t border-border bg-background shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="px-6 py-4 flex flex-col gap-3">
+              {LINKS.map((l) => (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground py-1"
+                >
+                  {l.label}
                 </Link>
-              ) : (
-                <>
-                  <Link to="/auth" onClick={() => setOpen(false)} className="flex-1">
-                    <Button variant="outline" className="w-full">Sign in</Button>
+              ))}
+              <div className="pt-3 border-t border-border flex gap-2">
+                {authed ? (
+                  <Link to="/dashboard" onClick={() => setOpen(false)} className="flex-1">
+                    <Button className="w-full">Dashboard</Button>
                   </Link>
-                  <Link to="/auth" onClick={() => setOpen(false)} className="flex-1">
-                    <Button className="w-full">Get started</Button>
-                  </Link>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Link to="/auth" onClick={() => setOpen(false)} className="flex-1">
+                      <Button variant="outline" className="w-full">Sign in</Button>
+                    </Link>
+                    <Link to="/auth" onClick={() => setOpen(false)} className="flex-1">
+                      <Button className="w-full">Get started</Button>
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </header>
   );
