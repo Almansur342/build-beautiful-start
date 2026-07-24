@@ -335,39 +335,171 @@ function BuildFor() {
 /* =============================================================
    EASY INTEGRATION — detected technologies
    ============================================================= */
+const ALL_TECHS: { name: string; slug: string; color: string }[] = [
+  { name: "WordPress", slug: "wordpress", color: "21759B" },
+  { name: "Shopify", slug: "shopify", color: "7AB55C" },
+  { name: "Webflow", slug: "webflow", color: "146EF5" },
+  { name: "Wix", slug: "wix", color: "0C6EFC" },
+  { name: "Squarespace", slug: "squarespace", color: "000000" },
+  { name: "Ghost", slug: "ghost", color: "15171A" },
+  { name: "React", slug: "react", color: "61DAFB" },
+  { name: "Next.js", slug: "nextdotjs", color: "000000" },
+  { name: "Vue", slug: "vuedotjs", color: "4FC08D" },
+  { name: "Angular", slug: "angular", color: "DD0031" },
+  { name: "Svelte", slug: "svelte", color: "FF3E00" },
+  { name: "Astro", slug: "astro", color: "BC52EE" },
+  { name: "Nuxt", slug: "nuxtdotjs", color: "00DC82" },
+  { name: "Remix", slug: "remix", color: "000000" },
+  { name: "Gatsby", slug: "gatsby", color: "663399" },
+  { name: "Vite", slug: "vite", color: "646CFF" },
+  { name: "Node.js", slug: "nodedotjs", color: "339933" },
+  { name: "Deno", slug: "deno", color: "000000" },
+  { name: "Bun", slug: "bun", color: "000000" },
+  { name: "TypeScript", slug: "typescript", color: "3178C6" },
+  { name: "JavaScript", slug: "javascript", color: "F7DF1E" },
+  { name: "Tailwind", slug: "tailwindcss", color: "06B6D4" },
+  { name: "Bootstrap", slug: "bootstrap", color: "7952B3" },
+  { name: "Sass", slug: "sass", color: "CC6699" },
+  { name: "Google Analytics", slug: "googleanalytics", color: "E37400" },
+  { name: "Google Tag Manager", slug: "googletagmanager", color: "246FDB" },
+  { name: "Google Ads", slug: "googleads", color: "4285F4" },
+  { name: "Meta", slug: "meta", color: "0467DF" },
+  { name: "Facebook", slug: "facebook", color: "1877F2" },
+  { name: "Instagram", slug: "instagram", color: "E4405F" },
+  { name: "LinkedIn", slug: "linkedin", color: "0A66C2" },
+  { name: "TikTok", slug: "tiktok", color: "000000" },
+  { name: "YouTube", slug: "youtube", color: "FF0000" },
+  { name: "X", slug: "x", color: "000000" },
+  { name: "Pinterest", slug: "pinterest", color: "BD081C" },
+  { name: "HubSpot", slug: "hubspot", color: "FF7A59" },
+  { name: "Mailchimp", slug: "mailchimp", color: "FFE01B" },
+  { name: "Klaviyo", slug: "klaviyo", color: "1B1B1B" },
+  { name: "Intercom", slug: "intercom", color: "1F8DED" },
+  { name: "Zendesk", slug: "zendesk", color: "03363D" },
+  { name: "Segment", slug: "segment", color: "52BD95" },
+  { name: "Salesforce", slug: "salesforce", color: "00A1E0" },
+  { name: "Pipedrive", slug: "pipedrive", color: "000000" },
+  { name: "Notion", slug: "notion", color: "000000" },
+  { name: "Airtable", slug: "airtable", color: "18BFFF" },
+  { name: "Slack", slug: "slack", color: "4A154B" },
+  { name: "Discord", slug: "discord", color: "5865F2" },
+  { name: "Zoom", slug: "zoom", color: "0B5CFF" },
+  { name: "Calendly", slug: "calendly", color: "006BFF" },
+  { name: "Zapier", slug: "zapier", color: "FF4A00" },
+  { name: "Make", slug: "make", color: "6D00CC" },
+  { name: "Stripe", slug: "stripe", color: "635BFF" },
+  { name: "PayPal", slug: "paypal", color: "003087" },
+  { name: "Square", slug: "square", color: "000000" },
+  { name: "Braintree", slug: "braintree", color: "000000" },
+  { name: "Klarna", slug: "klarna", color: "FFA8CD" },
+  { name: "Cloudflare", slug: "cloudflare", color: "F38020" },
+  { name: "AWS", slug: "amazonwebservices", color: "232F3E" },
+  { name: "Google Cloud", slug: "googlecloud", color: "4285F4" },
+  { name: "Azure", slug: "microsoftazure", color: "0078D4" },
+  { name: "Vercel", slug: "vercel", color: "000000" },
+  { name: "Netlify", slug: "netlify", color: "00C7B7" },
+  { name: "Render", slug: "render", color: "46E3B7" },
+  { name: "Heroku", slug: "heroku", color: "430098" },
+  { name: "DigitalOcean", slug: "digitalocean", color: "0080FF" },
+  { name: "Framer", slug: "framer", color: "0055FF" },
+  { name: "Figma", slug: "figma", color: "F24E1E" },
+  { name: "Elementor", slug: "elementor", color: "92003B" },
+  { name: "WooCommerce", slug: "woocommerce", color: "96588A" },
+  { name: "Magento", slug: "magento", color: "EE672F" },
+  { name: "BigCommerce", slug: "bigcommerce", color: "121118" },
+  { name: "PrestaShop", slug: "prestashop", color: "DF0067" },
+  { name: "Contentful", slug: "contentful", color: "2478CC" },
+  { name: "Sanity", slug: "sanity", color: "F03E2F" },
+  { name: "Strapi", slug: "strapi", color: "4945FF" },
+  { name: "Drupal", slug: "drupal", color: "0678BE" },
+  { name: "Joomla", slug: "joomla", color: "5091CD" },
+  { name: "Django", slug: "django", color: "092E20" },
+  { name: "Flask", slug: "flask", color: "000000" },
+  { name: "Rails", slug: "rubyonrails", color: "CC0000" },
+  { name: "Laravel", slug: "laravel", color: "FF2D20" },
+  { name: "Spring", slug: "spring", color: "6DB33F" },
+  { name: ".NET", slug: "dotnet", color: "512BD4" },
+  { name: "Go", slug: "go", color: "00ADD8" },
+  { name: "Rust", slug: "rust", color: "000000" },
+  { name: "Python", slug: "python", color: "3776AB" },
+  { name: "PostgreSQL", slug: "postgresql", color: "4169E1" },
+  { name: "MySQL", slug: "mysql", color: "4479A1" },
+  { name: "MongoDB", slug: "mongodb", color: "47A248" },
+  { name: "Redis", slug: "redis", color: "DC382D" },
+  { name: "Supabase", slug: "supabase", color: "3ECF8E" },
+  { name: "Firebase", slug: "firebase", color: "DD2C00" },
+  { name: "Algolia", slug: "algolia", color: "003DFF" },
+  { name: "Elasticsearch", slug: "elasticsearch", color: "005571" },
+  { name: "GitHub", slug: "github", color: "181717" },
+  { name: "GitLab", slug: "gitlab", color: "FC6D26" },
+  { name: "Bitbucket", slug: "bitbucket", color: "0052CC" },
+  { name: "Docker", slug: "docker", color: "2496ED" },
+  { name: "Kubernetes", slug: "kubernetes", color: "326CE5" },
+  { name: "Sentry", slug: "sentry", color: "362D59" },
+  { name: "Datadog", slug: "datadog", color: "632CA6" },
+  { name: "New Relic", slug: "newrelic", color: "008C99" },
+  { name: "Hotjar", slug: "hotjar", color: "FD3A5C" },
+  { name: "Mixpanel", slug: "mixpanel", color: "7856FF" },
+  { name: "Amplitude", slug: "amplitude", color: "1E61F0" },
+  { name: "Plausible", slug: "plausibleanalytics", color: "5850EC" },
+  { name: "Fathom", slug: "fathom", color: "9187FF" },
+  { name: "Twilio", slug: "twilio", color: "F22F46" },
+  { name: "SendGrid", slug: "sendgrid", color: "1A82E2" },
+  { name: "Mailgun", slug: "mailgun", color: "F06B66" },
+  { name: "Postmark", slug: "postmark", color: "FFDE00" },
+  { name: "Auth0", slug: "auth0", color: "EB5424" },
+  { name: "Okta", slug: "okta", color: "007DC1" },
+  { name: "Clerk", slug: "clerk", color: "6C47FF" },
+  { name: "Cloudinary", slug: "cloudinary", color: "3448C5" },
+  { name: "Imgix", slug: "imgix", color: "000000" },
+  { name: "Contentstack", slug: "contentstack", color: "6C5CE7" },
+  { name: "Typeform", slug: "typeform", color: "262627" },
+  { name: "Trello", slug: "trello", color: "0052CC" },
+  { name: "Asana", slug: "asana", color: "F06A6A" },
+  { name: "Jira", slug: "jira", color: "0052CC" },
+  { name: "Linear", slug: "linear", color: "5E6AD2" },
+  { name: "ClickUp", slug: "clickup", color: "7B68EE" },
+];
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function Integrations() {
-  const techs: { name: string; slug: string; color: string }[] = [
-    { name: "WordPress", slug: "wordpress", color: "21759B" },
-    { name: "Shopify", slug: "shopify", color: "7AB55C" },
-    { name: "Webflow", slug: "webflow", color: "146EF5" },
-    { name: "Wix", slug: "wix", color: "0C6EFC" },
-    { name: "Squarespace", slug: "squarespace", color: "000000" },
-    { name: "Ghost", slug: "ghost", color: "15171A" },
-    { name: "React", slug: "react", color: "61DAFB" },
-    { name: "Next.js", slug: "nextdotjs", color: "000000" },
-    { name: "Vue", slug: "vuedotjs", color: "4FC08D" },
-    { name: "Angular", slug: "angular", color: "DD0031" },
-    { name: "Svelte", slug: "svelte", color: "FF3E00" },
-    { name: "Astro", slug: "astro", color: "BC52EE" },
-    { name: "Google Analytics", slug: "googleanalytics", color: "E37400" },
-    { name: "Google Tag Manager", slug: "googletagmanager", color: "246FDB" },
-    { name: "HubSpot", slug: "hubspot", color: "FF7A59" },
-    { name: "Mailchimp", slug: "mailchimp", color: "FFE01B" },
-    { name: "Intercom", slug: "intercom", color: "1F8DED" },
-    { name: "Segment", slug: "segment", color: "52BD95" },
-    { name: "Stripe", slug: "stripe", color: "635BFF" },
-    { name: "PayPal", slug: "paypal", color: "003087" },
-    { name: "Klaviyo", slug: "klaviyo", color: "1B1B1B" },
-    { name: "Cloudflare", slug: "cloudflare", color: "F38020" },
-    { name: "AWS", slug: "amazonwebservices", color: "232F3E" },
-    { name: "Vercel", slug: "vercel", color: "000000" },
-    { name: "Framer", slug: "framer", color: "0055FF" },
-    { name: "Elementor", slug: "elementor", color: "92003B" },
-    { name: "WooCommerce", slug: "woocommerce", color: "96588A" },
-    { name: "Magento", slug: "magento", color: "EE672F" },
-    { name: "Salesforce", slug: "salesforce", color: "00A1E0" },
-    { name: "Zendesk", slug: "zendesk", color: "03363D" },
-  ];
+  const GRID = 30; // 5 cols x 6 rows on md
+  const [visible, setVisible] = React.useState(() => shuffle(ALL_TECHS).slice(0, GRID));
+  const [flipping, setFlipping] = React.useState<Set<number>>(new Set());
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      // pick 3-5 random slots to swap
+      const swapCount = 3 + Math.floor(Math.random() * 3);
+      const slots = new Set<number>();
+      while (slots.size < swapCount) slots.add(Math.floor(Math.random() * GRID));
+      setFlipping(slots);
+      setTimeout(() => {
+        setVisible((prev) => {
+          const next = [...prev];
+          const usedSlugs = new Set(prev.map((t) => t.slug));
+          const pool = ALL_TECHS.filter((t) => !usedSlugs.has(t.slug));
+          const shuffled = shuffle(pool);
+          let pi = 0;
+          slots.forEach((idx) => {
+            if (shuffled[pi]) next[idx] = shuffled[pi++];
+          });
+          return next;
+        });
+        setFlipping(new Set());
+      }, 350);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section id="integrations" className="bg-muted/40 border-y border-border">
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
@@ -380,20 +512,25 @@ function Integrations() {
           personalize outreach with real context.
         </p>
         <div className="mt-12 grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-3">
-          {techs.map((t) => (
-            <div
-              key={t.slug}
-              title={t.name}
-              className="rounded-2xl border border-border bg-card h-20 grid place-items-center transition hover:shadow-sm"
-            >
-              <img
-                src={`https://cdn.simpleicons.org/${t.slug}/${t.color}`}
-                alt={`${t.name} logo`}
-                loading="lazy"
-                className="h-8 w-auto max-w-[60%] object-contain"
-              />
-            </div>
-          ))}
+          {visible.map((t, idx) => {
+            const isFlipping = flipping.has(idx);
+            return (
+              <div
+                key={idx}
+                title={t.name}
+                className="border border-border bg-card h-20 grid place-items-center transition hover:shadow-sm overflow-hidden"
+              >
+                <img
+                  src={`https://cdn.simpleicons.org/${t.slug}/${t.color}`}
+                  alt={`${t.name} logo`}
+                  loading="lazy"
+                  className={`h-8 w-auto max-w-[60%] object-contain transition-all duration-300 ${
+                    isFlipping ? "opacity-0 scale-75 blur-sm" : "opacity-100 scale-100 blur-0"
+                  }`}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
