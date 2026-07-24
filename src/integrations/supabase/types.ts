@@ -134,6 +134,45 @@ export type Database = {
         }
         Relationships: []
       }
+      refund_requests: {
+        Row: {
+          admin_note: string | null
+          amount_usd: number | null
+          created_at: string
+          id: string
+          reason: string
+          status: string
+          stripe_charge_id: string | null
+          stripe_invoice_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          reason: string
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_invoice_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          reason?: string
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_invoice_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scan_logs: {
         Row: {
           api_key_id: string | null
@@ -209,6 +248,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
