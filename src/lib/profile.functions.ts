@@ -18,7 +18,7 @@ export const updateMyProfile = createServerFn({ method: 'POST' })
     for (const k of ['full_name', 'company', 'phone', 'timezone', 'bio', 'website', 'avatar_url'] as const) {
       if (data[k] !== undefined) patch[k] = data[k];
     }
-    const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
+    const { error } = await supabase.from('profiles').update(patch as any).eq('id', userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
