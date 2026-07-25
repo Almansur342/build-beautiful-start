@@ -114,11 +114,18 @@ export const adminListRefunds = createServerFn({ method: 'GET' })
     if (!isAdmin) throw new Error('Forbidden');
     const { data, error } = await supabase
       .from('refund_requests')
-      .select('*, profiles:user_id(email, full_name)')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = data ?? [];
+    const userIds = Array.from(new Set(rows.map((r: any) => r.user_id).filter(Boolean))) as string[];
+    let profilesById: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
+      profilesById = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p]));
+    }
+    return rows.map((r: any) => ({ ...r, profiles: profilesById[r.user_id] ?? null }));
   });
 
 export const adminUpdateRefund = createServerFn({ method: 'POST' })
