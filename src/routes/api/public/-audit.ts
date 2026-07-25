@@ -40,7 +40,7 @@ export function logSecurityEvent(evt: AuditEvent): void {
         ip_hash: ipHash,
         device_hash: deviceHash,
         user_agent: (evt.userAgent ?? "").slice(0, 300) || null,
-        metadata: evt.metadata ?? {},
+        metadata: (evt.metadata ?? {}) as never,
       });
     } catch {
       // swallow — audit logging must never break the request path
