@@ -44,6 +44,7 @@ function AdminPage() {
     refunds: { t: "Refund requests", d: "Review and process customer refunds." },
     support: { t: "Support inbox", d: "Reply to open tickets and mark them resolved." },
     feedback: { t: "Feedback", d: "5-star ratings from your users." },
+    security: { t: "Security event log", d: "Session, refresh, quota, and device signals from the extension." },
     settings: { t: "Remote configuration", d: "Live-toggle scans, batch caps, and the extension notice banner." },
   };
 
