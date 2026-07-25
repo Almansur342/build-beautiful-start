@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { corsFactory, corsHeaders, jsonResponse, preflight, bodyTooLarge } from "./-cors";
 import { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } from "./-rate-limit";
+import { signPayload } from "./-signing";
 
 // Whitelisted keys returned to the extension. Never expose secrets or admin-only keys.
 const PUBLIC_KEYS = [
@@ -37,13 +38,15 @@ export const Route = createFileRoute("/api/public/config")({
         for (const row of data ?? []) {
           if ((PUBLIC_KEYS as readonly string[]).includes(row.key)) out[row.key] = row.value;
         }
+        const payload = {
+          ok: true as const,
+          config: out,
+          server_time: new Date().toISOString(),
+          ttl_seconds: Math.max(60, Number(out.remote_config_ttl_minutes ?? 15) * 60),
+        };
+        const signed = await signPayload(payload);
         return new Response(
-          JSON.stringify({
-            ok: true,
-            config: out,
-            server_time: new Date().toISOString(),
-            ttl_seconds: Math.max(60, Number(out.remote_config_ttl_minutes ?? 15) * 60),
-          }),
+          JSON.stringify({ ...payload, sig: signed.sig, kid: signed.kid, alg: signed.alg }),
           {
             status: 200,
             headers: {

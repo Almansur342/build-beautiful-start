@@ -108,10 +108,22 @@ const LeadLensGate = {
     }
     const result = await this._fetchJson('/api/public/config', null, 'GET')
     if (result.ok && result.data && result.data.config) {
+      // Phase F: enforce Ed25519 signature. Reject unsigned/tampered payloads.
+      const verifier = self.LeadLensSignedConfig
+      if (!verifier) {
+        if (cached && cached.config) return cached.config
+        return Object.assign({}, CONFIG_DEFAULTS)
+      }
+      const v = await verifier.verify(result.data)
+      if (!v.valid) {
+        try { console.warn('[LeadLens] Remote config signature invalid:', v.reason) } catch (_) {}
+        if (cached && cached.config) return cached.config
+        return Object.assign({}, CONFIG_DEFAULTS)
+      }
       const merged = Object.assign({}, CONFIG_DEFAULTS, result.data.config)
       const ttlSec = Number(result.data.ttl_seconds || 900)
       await this._storageSet({
-        [CONFIG_STORE_KEY]: { config: merged, expires_at: now + ttlSec * 1000, fetched_at: now },
+        [CONFIG_STORE_KEY]: { config: merged, expires_at: now + ttlSec * 1000, fetched_at: now, signed: true },
       })
       return merged
     }
