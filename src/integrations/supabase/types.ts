@@ -366,6 +366,56 @@ export type Database = {
           },
         ]
       }
+      scan_preflight_tokens: {
+        Row: {
+          api_key_id: string
+          consumed_at: string | null
+          created_at: string
+          device_fingerprint: string
+          event_id: string
+          expires_at: string
+          id: string
+          scan_id: string
+          token_hash: string
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          api_key_id: string
+          consumed_at?: string | null
+          created_at?: string
+          device_fingerprint: string
+          event_id: string
+          expires_at: string
+          id?: string
+          scan_id: string
+          token_hash: string
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          api_key_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          device_fingerprint?: string
+          event_id?: string
+          expires_at?: string
+          id?: string
+          scan_id?: string
+          token_hash?: string
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_preflight_tokens_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_events: {
         Row: {
           api_key_id: string | null
