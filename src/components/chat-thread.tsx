@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, CheckCheck } from "lucide-react";
+import { Send, CheckCheck, CircleAlert, Radio, Sparkles } from "lucide-react";
 
 export type ChatMsg = {
   id: string;
@@ -67,6 +67,8 @@ export function ChatThread({
   header,
   headerActions,
   emptyLabel,
+  liveLabel,
+  sendError,
 }: {
   messages: ChatMsg[];
   viewerRole: "user" | "support";
@@ -79,6 +81,8 @@ export function ChatThread({
   header?: React.ReactNode;
   headerActions?: React.ReactNode;
   emptyLabel?: string;
+  liveLabel?: string;
+  sendError?: string | null;
 }) {
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -98,19 +102,17 @@ export function ChatThread({
   let lastSender = "";
 
   return (
-    <div className="flex flex-col h-full bg-neutral-50">
+    <div className="flex flex-col h-full bg-[#f7f8f5]">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-background border-b border-border/60">
-        <div className="min-w-0">{header}</div>
+      <div className="flex items-center justify-between px-5 py-3.5 bg-background border-b border-border/60">
+        <div className="min-w-0">{header}{liveLabel && <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700"><span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" /></span>{liveLabel}</div>}</div>
         <div className="flex items-center gap-2 shrink-0">{headerActions}</div>
       </div>
 
       {/* Message stream */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
         {messages.length === 0 && (
-          <div className="h-full grid place-items-center text-sm text-muted-foreground">
-            {emptyLabel ?? "Start the conversation."}
-          </div>
+          <div className="h-full grid place-items-center text-center px-6"><div><div className="mx-auto mb-3 h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center"><Sparkles className="h-4 w-4" /></div><div className="text-sm font-medium text-foreground">{emptyLabel ?? "Start the conversation."}</div><p className="mt-1 text-xs text-muted-foreground">Share the details and we will keep this conversation updated here.</p></div></div>
         )}
         {messages.map((m, idx) => {
           const d = new Date(m.created_at);
@@ -152,8 +154,8 @@ export function ChatThread({
                   <div
                     className={
                       mine
-                        ? "px-3.5 py-2 text-sm bg-neutral-900 text-white shadow-sm"
-                        : "px-3.5 py-2 text-sm bg-background text-foreground shadow-sm border border-border/40"
+                        ? "px-3.5 py-2.5 text-sm bg-neutral-900 text-white shadow-sm rounded-2xl rounded-br-md"
+                        : "px-3.5 py-2.5 text-sm bg-background text-foreground shadow-sm border border-border/40 rounded-2xl rounded-bl-md"
                     }
                     style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
                   >
@@ -179,7 +181,9 @@ export function ChatThread({
             <CheckCheck className="h-4 w-4" /> This conversation is closed.
           </div>
         ) : (
-          <div className="flex items-end gap-2">
+          <div>
+            {sendError && <div role="alert" className="mb-2 flex items-center gap-1.5 text-xs text-destructive"><CircleAlert className="h-3.5 w-3.5" /> {sendError}</div>}
+            <div className="flex items-end gap-2">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -192,17 +196,19 @@ export function ChatThread({
               rows={1}
               maxLength={2000}
               placeholder={placeholder ?? "Type a message… (Enter to send)"}
-              className="flex-1 resize-none bg-neutral-100 focus:bg-background px-3.5 py-2.5 text-sm outline-none focus:ring-1 focus:ring-foreground max-h-32"
+              className="flex-1 resize-none rounded-xl bg-neutral-100 focus:bg-background px-3.5 py-2.5 text-sm outline-none focus:ring-1 focus:ring-foreground max-h-32"
               style={{ minHeight: 42 }}
             />
             <button
               onClick={submit}
               disabled={!text.trim() || sending}
               aria-label="Send"
-              className="h-[42px] w-[42px] bg-neutral-900 text-white grid place-items-center disabled:opacity-40"
+              className="h-[42px] w-[42px] rounded-xl bg-neutral-900 text-white grid place-items-center disabled:opacity-40 transition hover:bg-neutral-700"
             >
               <Send className="h-4 w-4" />
             </button>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between px-1 text-[10px] text-muted-foreground"><span className="inline-flex items-center gap-1"><Radio className="h-3 w-3 text-emerald-600" /> Live updates are on</span><span>{text.length}/2000</span></div>
           </div>
         )}
       </div>

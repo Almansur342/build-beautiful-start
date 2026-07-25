@@ -20,6 +20,7 @@ const DEFAULTS = {
   session: { max: 20, windowSeconds: 60 },
   refresh: { max: 30, windowSeconds: 60 },
   authorize: { max: 120, windowSeconds: 60 },
+  preflight: { max: 30, windowSeconds: 60 },
   batch: { max: 30, windowSeconds: 60 },
   config: { max: 60, windowSeconds: 60 },
 } as const;

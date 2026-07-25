@@ -92,6 +92,7 @@ const allowedMessageMethods = new Set([
   'releaseScanResources',
   'onContentLoad',
   'beginPageScan',
+  'preflightPageScans',
   'canStartPageScan',
   'endPageScan',
   'saveContacts',
@@ -653,44 +654,103 @@ const Driver = {
       }
     }
 
-    if (!self.LeadLensGate || typeof self.LeadLensGate.authorize !== 'function') {
-      return { ok: false, status: 'quota-check-unavailable', message: 'Qrinux scan authorization is unavailable. Try again shortly.' }
+    if (!self.LeadLensGate || typeof self.LeadLensGate.preflight !== 'function') {
+      return { ok: false, status: 'authorization-unavailable', message: 'Cannot start scan right now because authorization could not be verified. Please try again.' }
     }
 
-    const quota = await self.LeadLensGate.authorize('', { checkOnly: true })
-    if (!quota?.ok) {
-      return {
-        ok: false,
-        status: quota?.reason || 'quota-check-failed',
-        message: quota?.message || 'Scan authorization failed. Try again shortly.',
-        remaining: quota?.remaining,
-        reset_at: quota?.reset_at,
-      }
-    }
-
-    return { ok: true, status: 'browser-database', remaining: quota.remaining, limit: quota.limit, reset_at: quota.reset_at }
+    return { ok: true, status: 'browser-database' }
   },
 
-  async beginPageScan(url) {
+  async preflightPageScans(urls = []) {
+    if (!self.LeadLensGate || typeof self.LeadLensGate.preflight !== 'function') {
+      return { ok: false, status: 'authorization-unavailable', message: 'Cannot start scan right now because authorization could not be verified. Please try again.' }
+    }
+
+    const unique = [...new Set((Array.isArray(urls) ? urls : [])
+      .map((value) => String(value?.website_url || value?.url || value || '').split('#')[0].slice(0, 500))
+      .filter(Boolean))]
+    if (!unique.length) return { ok: false, status: 'bad-request', message: 'No URLs to authorize.' }
+
+    const requests = []
+    const localResults = []
+    for (const websiteUrl of unique) {
+      const hostname = Driver.normaliseScanHostname(websiteUrl)
+      if (!hostname) {
+        localResults.push({ website_url: websiteUrl, allowed: false, reason: 'invalid-url', message: 'Invalid URL.' })
+        continue
+      }
+      if (await Driver.isDisabledDomain(websiteUrl)) {
+        localResults.push({ website_url: websiteUrl, allowed: false, reason: 'skipped-enterprise', message: 'Known non-prospect or excluded domain.' })
+        continue
+      }
+      const draftContext = self.LeadLensScanContext
+        ? await self.LeadLensScanContext.createFromUrl(websiteUrl)
+        : null
+      if (!draftContext) {
+        localResults.push({ website_url: websiteUrl, allowed: false, reason: 'authorization-unavailable', message: 'Could not prepare scan authorization.' })
+        continue
+      }
+      requests.push({ website_url: draftContext.url, event_id: draftContext.event_id, scan_id: draftContext.scan_id })
+    }
+
+    if (!requests.length) {
+      return { ok: true, allowed: false, allowed_count: 0, results: localResults }
+    }
+
+    const preflight = await self.LeadLensGate.preflight(requests)
+    if (!preflight?.ok) {
+      return { ok: false, status: preflight?.reason || 'authorization-denied', message: preflight?.message || 'Cannot start scan right now because authorization could not be verified. Please try again.', remaining: preflight?.remaining, reset_at: preflight?.reset_at, results: localResults }
+    }
+
+    const byEvent = new Map(requests.map((item) => [item.event_id, item]))
+    const serverResults = (preflight.results || []).map((row) => {
+      const original = byEvent.get(row.event_id) || {}
+      return {
+        ...row,
+        website_url: row.website_url || original.website_url,
+        scan_id: row.scan_id || original.scan_id,
+      }
+    })
+
+    return { ...preflight, results: [...localResults, ...serverResults] }
+  },
+
+  async beginPageScan(url, source = 'manual', authorization = null) {
     const allowed = await Driver.canStartPageScan(url)
     if (!allowed?.ok) return allowed
 
     const hostname = Driver.normaliseScanHostname(url)
+    const authUrl = authorization?.website_url || authorization?.url || null
     const scanKey = String(url || '').split('#')[0].slice(0, 500)
+    const authScanKey = authUrl ? String(authUrl).split('#')[0].slice(0, 500) : ''
 
     if (!hostname || !scanKey) {
       return false
     }
 
+    // Generate immutable identifiers before authorization, then require a server token
+    // before enabling any evidence collection or local persistence for this URL.
+    const draftContext = self.LeadLensScanContext
+      ? await self.LeadLensScanContext.createFromUrl(authUrl || url, authorization)
+      : null
+    if (!draftContext) return { ok: false, status: 'authorization-unavailable', message: 'Cannot start scan right now because authorization could not be verified. Please try again.' }
+    let serverAuthorization = authorization
+    let preflight = null
+    if (!serverAuthorization?.scan_token) {
+      preflight = await self.LeadLensGate.preflight([{ website_url: draftContext.url, event_id: draftContext.event_id, scan_id: draftContext.scan_id }])
+      serverAuthorization = preflight?.results?.find((row) => row.event_id === draftContext.event_id)
+    }
+    if (!serverAuthorization?.allowed || !serverAuthorization?.scan_token) {
+      return { ok: false, status: serverAuthorization?.reason || preflight?.reason || 'authorization-denied', message: serverAuthorization?.message || preflight?.message || 'Cannot start scan right now because authorization could not be verified. Please try again.', remaining: preflight?.remaining, reset_at: preflight?.reset_at }
+    }
+    const ctx = Object.freeze({ ...draftContext, scan_token: serverAuthorization.scan_token, scan_mode: source === 'bulk' ? 'bulk' : 'manual' })
     Driver.cleanupPageScans()
     activePageScans.set(hostname, Date.now() + scanSessionTtl)
-    const ctx = self.LeadLensScanContext
-      ? await self.LeadLensScanContext.createFromUrl(url)
-      : null
-    if (ctx) activeScanContexts.set(scanKey, ctx)
+    activeScanContexts.set(scanKey, ctx)
+    if (authScanKey && authScanKey !== scanKey) activeScanContexts.set(authScanKey, ctx)
     Driver.persistPageScanSessions()
 
-    return true
+    return { ok: true, status: 'authorized', message: 'Scan authorized. Starting analysis?', remaining: preflight?.remaining, limit: preflight?.limit, reset_at: preflight?.reset_at }
   },
 
   async endPageScan(url, completed = false) {
@@ -707,6 +767,7 @@ const Driver = {
     activePageScans.set(hostname, Date.now() + 15000)
     const ctx = activeScanContexts.get(scanKey)
     activeScanContexts.delete(scanKey)
+    if (ctx?.url) activeScanContexts.delete(String(ctx.url).split('#')[0].slice(0, 500))
     if (completed && ctx && self.LeadLensScanQueue) {
       await self.LeadLensScanQueue.enqueue(ctx)
     }
@@ -867,23 +928,8 @@ const Driver = {
   async onContentLoad(url, items, language, requires, categoryRequires) {
     try {
       items.cookies = items.cookies || {}
-
-      // Use only page-visible cookies by default. The privileged chrome.cookies
-      // permission is intentionally not required, which keeps Web Store review
-      // lower-risk and avoids reading HttpOnly cookies.
-      if (chrome.cookies?.getAll) {
-        try {
-          ;(
-            await promisify(chrome.cookies, 'getAll', {
-              url,
-            })
-          ).forEach(
-            ({ name, value }) => (items.cookies[name.toLowerCase()] = [value])
-          )
-        } catch (error) {
-          Driver.log('Privileged cookie read skipped', error?.message || error)
-        }
-      }
+      // Privacy: do not read browser cookie names or values. The extension does
+      // not request the cookies permission and no cookie data is exported.
 
       // Change Google Analytics 4 cookie from _ga_XXXXXXXXXX to _ga_*
       Object.keys(items.cookies).forEach((name) => {
@@ -1295,6 +1341,56 @@ const Driver = {
     return Driver.saveContacts(url, pageTitle, { emails, socials: [] })
   },
 
+
+
+  async collectBackendIntelligenceEvidence(ctx = {}) {
+    const url = String(ctx.url || '').slice(0, 500)
+    const host = Driver.normaliseScanHostname(url)
+    if (!host) return null
+    const [stored, audit] = await Promise.all([
+      Driver.getContactShard(host).catch(() => ({})),
+      Driver.getSeoAuditShard(host).catch(() => null),
+    ])
+    const rows = Object.values(stored || {})
+    const siteRow = rows.find((row = {}) => row.type === 'site') || {}
+    const contacts = rows.filter((row = {}) => row.type === 'email' || row.type === 'social' || row.type === 'phone')
+    const emails = contacts.filter((row = {}) => row.type === 'email')
+    const socials = contacts.filter((row = {}) => row.type === 'social')
+    const phones = contacts.filter((row = {}) => row.type === 'phone')
+    const technologies = Driver.getStoredTechnologies(host)
+    const raw = audit?.rawEvidence && typeof audit.rawEvidence === 'object' ? audit.rawEvidence : {}
+    const infra = audit?.seoInfrastructure && typeof audit.seoInfrastructure === 'object' ? audit.seoInfrastructure : {}
+    const directEmailCount = emails.filter((row = {}) => Driver.classifyEmailKind(row.emailDomain || String(row.email || row.value || '').split('@')[1] || '', host) === 'direct').length
+
+    return {
+      schemaVersion: 'leadlens-backend-evidence-v1', url, host,
+      pageTitle: siteRow.pageTitle || audit?.title || raw.title || host,
+      capturedAt: siteRow.lastSeenAt || audit?.auditedAt || new Date().toISOString(),
+      scanStatus: siteRow.status || 'scanned',
+      contacts: { emailCount: emails.length, directEmailCount, socialCount: socials.length, phoneCount: phones.length, emailKinds: [...new Set(emails.map((row = {}) => Driver.classifyEmailKind(row.emailDomain || String(row.email || row.value || '').split('@')[1] || '', host)))].slice(0, 8), socialPlatforms: [...new Set(socials.map((row = {}) => row.platform || '').filter(Boolean))].slice(0, 12) },
+      technologies: technologies.slice(0, 30).map((item = {}) => ({ name: String(item.name || '').slice(0, 80), version: String(item.version || '').slice(0, 40), categories: Array.isArray(item.categories) ? item.categories.map((category) => category?.name || category).filter(Boolean).slice(0, 5) : [] })).filter((item) => item.name),
+      page: { title: raw.title || audit?.title || '', description: raw.description || audit?.description || '', canonical: audit?.canonical || raw.canonical || '', schemaTypes: Array.isArray(audit?.schemaTypes) ? audit.schemaTypes.slice(0, 20) : [], language: audit?.lang || raw.lang || '' },
+      seo: { score: audit?.score ?? null, h1Count: audit?.h1Count || 0, wordCount: audit?.wordCount || 0, images: audit?.images || 0, imagesWithAlt: audit?.imagesWithAlt || 0, brokenImages: audit?.brokenImages || 0, issues: Array.isArray(audit?.issues) ? audit.issues.slice(0, 12) : [] },
+      performance: { loadTimeMs: audit?.loadTime || null, largestContentfulPaintMs: audit?.largestContentfulPaint || null, ttfbMs: audit?.navTiming?.ttfb ?? null, resources: audit?.resources ?? null },
+      securityAndInfrastructure: { protocol: audit?.protocol || '', mixedContentResources: audit?.mixedContentResources || 0, insecureForms: audit?.insecureForms || 0, pageResponse: infra.pageResponse ? { status: infra.pageResponse.status, contentType: infra.pageResponse.contentType } : {} },
+      conversionAndTrust: { contactPageLinks: audit?.contactPageLinks || 0, bookingLinks: audit?.bookingPageLinks || 0, aboveFoldCtaCount: audit?.aboveFoldCtaCount || 0, contactForms: audit?.contactForms || 0, addressSignal: Boolean(audit?.addressSignals), mapSignal: Boolean(audit?.mapSignals), openingHoursSignal: Boolean(audit?.openingHourSignals), localBusinessSchema: Boolean(audit?.hasLocalBusinessSchema) },
+      text: { preview: String(raw.pageTextPreview || audit?.pageTextPreview || '').slice(0, 1800), intentKeywords: Array.isArray(audit?.intentKeywords) ? audit.intentKeywords.slice(0, 24) : [] },
+    }
+  },
+
+  async applyBackendIntelligence(url = '', intelligence = null, status = 'pending_backend') {
+    const host = Driver.normaliseScanHostname(url)
+    if (!host) return false
+    return enqueueContactItemsWrite(async () => {
+      const stored = await Driver.getContactShard(host)
+      const now = new Date().toISOString()
+      const key = 'site:' + host
+      const current = stored[key] || {}
+      stored[key] = { ...current, id: current.id || key, type: 'site', value: current.value || url, websiteUrl: current.websiteUrl || url, websiteHost: host, pageTitle: current.pageTitle || host, foundAt: current.foundAt || now, lastSeenAt: current.lastSeenAt || now, foundCount: Number(current.foundCount || 0) || 1, status: current.status || 'scanned', sources: current.sources || ['bulk scan'], technologies: Driver.getStoredTechnologies(host), intelligenceStatus: status === 'backend_generated' ? 'backend_generated' : 'pending_backend', intelligenceSource: status === 'backend_generated' ? 'backend' : 'backend_pending', intelligenceUpdatedAt: now, businessIntelligence: status === 'backend_generated' && intelligence ? intelligence : null }
+      await Driver.saveContactShard(host, stored)
+      return true
+    })
+  },
 
   async fetchSeoInfrastructure(url = '') {
     const checkedAt = new Date().toISOString()
@@ -2238,6 +2334,10 @@ const Driver = {
       status: item.status,
       sources: Array.isArray(item.sources) ? item.sources.slice(0, 4) : [],
       summaryOnly: true,
+      intelligenceStatus: item.intelligenceStatus || '',
+      intelligenceSource: item.intelligenceSource || '',
+      intelligenceUpdatedAt: item.intelligenceUpdatedAt || '',
+      businessIntelligence: item.businessIntelligence || null,
     }
     if (includeTechnologies) compact.technologies = Driver.technologySummary(item.technologies || [])
     return compact
@@ -3099,6 +3199,8 @@ chrome.tabs.onUpdated.addListener(async (id, { status, url }) => {
   }
 })
 
+self.LeadLensDriver = Driver
+
 // Enable messaging between scripts
 chrome.runtime.onMessage.addListener(Driver.onMessage)
 
@@ -3107,5 +3209,6 @@ Utils.withTimeout(Driver.init(), 14000, 'LeadLens background initialization time
   Driver.cache = Driver.cache || { hostnames: {}, robots: {}, ads: [] }
   settleDriverInit()
 })
+
 
 

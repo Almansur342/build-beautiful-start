@@ -2,14 +2,18 @@
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
+import { generateBackendBusinessIntelligence } from "@/lib/server-intelligence";
 
-const nonCountableStatuses = new Set(["failed", "error", "blocked", "challenge", "skipped", "retry_required"]);
+const countableStatuses = new Set(["full", "usable_partial"]);
+const nonCountableStatuses = new Set(["failed", "error", "blocked", "challenge", "skipped", "retry_required", "quota_blocked", "timeout", "pending_backend"]);
 
 const eventSchema = z.object({
   website_url: z.string().trim().min(1).max(500),
   event_id: z.string().trim().min(8).max(80).optional(),
   scan_id: z.string().trim().min(8).max(80).optional(),
   status: z.string().trim().max(40).optional(),
+  scan_token: z.string().trim().regex(/^qlp_[a-f0-9]{64}$/i, "Invalid scan token"),
+  evidence: z.record(z.any()).optional(),
 });
 
 const batchSchema = z.object({
@@ -95,7 +99,7 @@ export const Route = createFileRoute("/api/public/scan/batch")({
         const rawLimit = planRow?.daily_limit;
         const limit = rawLimit == null ? null : Number(rawLimit);
 
-        const results: Array<{ event_id?: string; ok: boolean; reason?: string; message?: string; counted?: boolean; used?: number; limit?: number | null; remaining?: number | null; reset_at?: string; duplicate?: boolean }> = [];
+        const results: Array<{ event_id?: string; website_url?: string; ok: boolean; reason?: string; message?: string; counted?: boolean; used?: number; limit?: number | null; remaining?: number | null; reset_at?: string; duplicate?: boolean; intelligence_status?: "backend_generated" | "pending_backend"; intelligence?: any }> = [];
         let lastRemaining: number | null = null;
         let quotaBlocked = false;
         let quotaBlockPayload: any = null;
@@ -103,32 +107,49 @@ export const Route = createFileRoute("/api/public/scan/batch")({
         for (const ev of capped) {
           const status = String(ev.status || "counted").toLowerCase();
           if (nonCountableStatuses.has(status)) {
-            results.push({ event_id: ev.event_id, ok: true, counted: false, reason: status, message: "Scan result was not countable." });
+            results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: true, counted: false, reason: status, message: "Scan result was not countable.", intelligence_status: "pending_backend" });
             continue;
           }
+
+          const tokenHash = await sha256Hex(ev.scan_token);
+          const { data: preflightToken } = await admin.from("scan_preflight_tokens").select("id, user_id, api_key_id, device_fingerprint, website_url, event_id, scan_id, expires_at, consumed_at").eq("token_hash", tokenHash).maybeSingle();
+          if (!preflightToken || preflightToken.user_id !== kRow.user_id || preflightToken.api_key_id !== kRow.id || preflightToken.device_fingerprint !== device || preflightToken.event_id !== ev.event_id || preflightToken.scan_id !== ev.scan_id || preflightToken.website_url !== ev.website_url || new Date(preflightToken.expires_at) <= new Date()) { results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: false, counted: false, reason: "invalid_scan_token", message: "Scan authorization has expired. Start the scan again.", intelligence_status: "pending_backend" }); continue; }
+          if (preflightToken.consumed_at) { results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: true, counted: false, duplicate: true, reason: "token_already_consumed", intelligence_status: "pending_backend" }); continue; }
 
           if (quotaBlocked) {
-            results.push({ event_id: ev.event_id, ok: false, counted: false, reason: quotaBlockPayload?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used: quotaBlockPayload?.used, limit: quotaBlockPayload?.limit ?? limit, remaining: 0, reset_at: quotaBlockPayload?.reset_at });
+            results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: false, counted: false, reason: quotaBlockPayload?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used: quotaBlockPayload?.used, limit: quotaBlockPayload?.limit ?? limit, remaining: 0, reset_at: quotaBlockPayload?.reset_at, intelligence_status: "pending_backend" });
             continue;
           }
 
-          const rpcArgs: any = { _user_id: kRow.user_id, _limit: null, _website_url: ev.website_url, _status: "counted", _scan_mode: "batch" };
+          const rpcArgs: any = { _user_id: kRow.user_id, _limit: null, _website_url: ev.website_url, _status: status, _scan_mode: "batch" };
           if (ev.event_id) rpcArgs._event_id = ev.event_id;
           if (ev.scan_id) rpcArgs._scan_id = ev.scan_id;
           const { data: rpcRows, error: rpcError } = await admin.rpc("consume_scan_quota", rpcArgs);
           if (rpcError) {
-            results.push({ event_id: ev.event_id, ok: false, counted: false, reason: "service_error", message: "Could not authorize scan." });
+            results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: false, counted: false, reason: "service_error", message: "Could not authorize scan.", intelligence_status: "pending_backend" });
             continue;
           }
           const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
           if (!row?.ok && !row?.allowed) {
             quotaBlocked = true;
             quotaBlockPayload = row || { reason: "quota_exceeded", limit };
-            results.push({ event_id: ev.event_id, ok: false, counted: false, reason: row?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used: row?.used, limit: row?.limit ?? limit, remaining: 0, reset_at: row?.reset_at });
+            results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: false, counted: false, reason: row?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used: row?.used, limit: row?.limit ?? limit, remaining: 0, reset_at: row?.reset_at, intelligence_status: "pending_backend" });
             continue;
           }
+          await admin.from("scan_preflight_tokens").update({ consumed_at: new Date().toISOString() }).eq("id", preflightToken.id).is("consumed_at", null);
           lastRemaining = row.remaining ?? lastRemaining;
-          results.push({ event_id: ev.event_id, ok: true, counted: !!row.counted, used: row.used, limit: row.limit ?? limit, remaining: row.remaining, reset_at: row.reset_at, duplicate: !!row.duplicate });
+          let intelligence: any = null;
+          let intelligenceStatus: "backend_generated" | "pending_backend" = "pending_backend";
+          try {
+            if (ev.evidence && typeof ev.evidence === "object") {
+              intelligence = generateBackendBusinessIntelligence(ev.evidence, { websiteUrl: ev.website_url, eventId: ev.event_id, scanId: ev.scan_id });
+              intelligenceStatus = "backend_generated";
+            }
+          } catch {
+            intelligence = null;
+            intelligenceStatus = "pending_backend";
+          }
+          results.push({ event_id: ev.event_id, website_url: ev.website_url, ok: true, counted: !!row.counted, used: row.used, limit: row.limit ?? limit, remaining: row.remaining, reset_at: row.reset_at, duplicate: !!row.duplicate, intelligence_status: intelligenceStatus, intelligence });
         }
 
         await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", kRow.id);

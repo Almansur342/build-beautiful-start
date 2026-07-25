@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getMyDashboardData } from "@/lib/dashboard.functions";
 import { listMyApiKeys } from "@/lib/apiKeys.functions";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { Activity, Globe, TrendingUp, Zap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Activity, Globe, TrendingUp, Zap, ArrowRight, CheckCircle2, KeyRound, Laptop, MessageCircleMore, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -39,13 +39,22 @@ function OverviewPage() {
       : usagePct >= 80
         ? "You are close to today's scan limit."
         : `${remainingToday ?? 0} scans remaining today.`;
+  const setupReady = Boolean(activeKey?.device_fingerprint);
+  const nextStep = !activeKey
+    ? { to: "/api-key" as const, icon: KeyRound, title: "Create your API key", body: "Your extension needs an API key before it can submit verified scans.", action: "Create API key" }
+    : !setupReady
+      ? { to: "/devices" as const, icon: Laptop, title: "Bind your Chrome device", body: "Run your first authorized scan to protect your account and enable scanning.", action: "View device setup" }
+      : usagePct >= 80
+        ? { to: "/billing" as const, icon: TrendingUp, title: "Protect today?s scan capacity", body: usageMessage, action: "Compare plans" }
+        : { to: "/support" as const, icon: MessageCircleMore, title: "Need help with a scan?", body: "Our support inbox keeps every answer tied to the right conversation.", action: "Open support" };
+  const NextStepIcon = nextStep.icon;
 
   return (
     <DashboardShell
       title={`Welcome${d?.profile?.full_name ? `, ${d.profile.full_name.split(" ")[0]}` : ""}`}
       description="Here's what's happening with your account today."
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           icon={Zap}
           label="Scans today"
@@ -71,6 +80,8 @@ function OverviewPage() {
           sub={activeKey?.bound_at ? new Date(activeKey.bound_at).toLocaleDateString() : "First scan will bind"}
         />
       </div>
+
+      <section className="mb-6 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-950 text-white"><div className="grid gap-5 p-6 sm:grid-cols-[1fr_auto] sm:items-center"><div className="flex gap-4"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-400 text-neutral-950"><NextStepIcon className="h-5 w-5" /></div><div><div className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-300">Recommended next step</div><h2 className="mt-1 text-lg font-semibold">{nextStep.title}</h2><p className="mt-1 text-sm text-neutral-300">{nextStep.body}</p></div></div><Link to={nextStep.to} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-emerald-100">{nextStep.action}<ArrowRight className="h-4 w-4" /></Link></div></section>
 
       {!isUnlimited && (
         <div className="bg-background border border-border rounded-2xl p-6 mb-6">
@@ -99,7 +110,7 @@ function OverviewPage() {
         {/* Recent scans */}
         <div className="lg:col-span-2 bg-background border border-border rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Recent scans</h3>
+            <div><h3 className="font-semibold">Recent scans</h3><p className="mt-0.5 text-xs text-muted-foreground">Your latest authorized scan activity.</p></div>
             <span className="text-xs text-muted-foreground">Last 20 shown</span>
           </div>
           {d?.history?.length ? (
@@ -110,7 +121,7 @@ function OverviewPage() {
                     <div className="h-8 w-8 rounded-lg bg-muted grid place-items-center flex-shrink-0">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <span className="text-sm font-mono truncate">{s.website_url}</span>
+                    <div className="min-w-0"><span className="block text-sm font-mono truncate">{s.website_url}</span><span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"><ScanStatus status={s.status} />{s.status.replaceAll("_", " ")}</span></div>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(s.scanned_at).toLocaleString(undefined, {
@@ -132,7 +143,7 @@ function OverviewPage() {
 
         {/* Device / status */}
         <div className="bg-background border border-border rounded-2xl p-6">
-          <h3 className="font-semibold mb-4">Session</h3>
+          <div className="mb-4 flex items-center gap-2"><div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><ShieldCheck className="h-4 w-4" /></div><div><h3 className="font-semibold">Account health</h3><p className="text-[11px] text-muted-foreground">Ready-state for secure scanning.</p></div></div>
           <div className="space-y-3 text-sm">
             <StatusRow label="Account" value="Active" ok />
             <StatusRow label="Plan" value={planName} ok />
@@ -164,6 +175,11 @@ function MetricCard({ icon: Icon, label, value, sub }: { icon: any; label: strin
       <div className="text-xs text-muted-foreground mt-1">{sub}</div>
     </div>
   );
+}
+
+function ScanStatus({ status }: { status: string }) {
+  const pending = status === "partial" || status === "usable_partial";
+  return <span className={`h-1.5 w-1.5 rounded-full ${pending ? "bg-amber-500" : status === "success" || status === "counted" ? "bg-emerald-500" : "bg-muted-foreground"}`} />;
 }
 
 function StatusRow({ label, value, ok }: { label: string; value: string; ok: boolean }) {

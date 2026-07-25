@@ -22,12 +22,12 @@ function LegalLayout() {
       <BreadcrumbBar title={current?.label ?? "Legal"} />
 
       {/* Hero band */}
-      <section className="border-b border-border bg-gradient-to-b from-muted/40 to-background">
+      <section className="border-b border-border bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.13),_transparent_32rem),linear-gradient(to_bottom,_#fafaf7,_#fff)]">
         <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
           <div className="flex items-center gap-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             <ScrollText className="h-3.5 w-3.5" /> Legal & policies
           </div>
-          <h1 className="mt-4 text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
+          <h1 className="mt-4 max-w-3xl font-serif text-5xl md:text-6xl font-semibold tracking-tight leading-[1.02]">
             The fine print,{" "}
             <span className="italic font-serif text-muted-foreground">without the fog.</span>
           </h1>

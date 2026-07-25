@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { BLOG_POSTS } from "./index";
+import { BLOG_POSTS } from "@/content/blog";
 import { BreadcrumbBar } from "@/components/breadcrumb-bar";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -31,20 +31,20 @@ function BlogPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_80%_0%,_rgba(16,185,129,0.10),_transparent_26rem),#fff]">
       <BreadcrumbBar title="Blog" />
-      <main className="max-w-6xl mx-auto px-6 py-16">
+      <main className="max-w-6xl mx-auto px-6 py-16 lg:py-24">
         <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground mb-3">Blog</div>
-        <h1 className="text-5xl font-semibold tracking-tight">Ideas from the field.</h1>
+        <h1 className="max-w-3xl font-serif text-5xl font-semibold tracking-tight leading-[1.02] md:text-6xl">Ideas for teams that prefer proof.</h1>
         <p className="mt-4 text-muted-foreground max-w-xl">
-          Deep dives on evidence-first qualification, outbound strategy, and the craft behind LeadLens.
+          Practical notes on reading a website, qualifying the signal, and creating an outbound motion your team can trust.
         </p>
 
         {featured && page === 1 && (
           <Link
             to="/blog/$slug"
             params={{ slug: featured.slug }}
-            className="mt-14 group grid md:grid-cols-2 gap-0 border border-border bg-card overflow-hidden hover:shadow-md transition-shadow"
+            className="mt-14 group grid overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl md:grid-cols-2"
           >
             <div className="aspect-[16/10] md:aspect-auto overflow-hidden bg-muted">
               <img
@@ -81,7 +81,7 @@ function BlogPage() {
               key={p.slug}
               to="/blog/$slug"
               params={{ slug: p.slug }}
-              className="group border border-border bg-card overflow-hidden hover:shadow-md transition-shadow"
+              className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl"
             >
               <div className="aspect-[16/10] overflow-hidden bg-muted">
                 <img

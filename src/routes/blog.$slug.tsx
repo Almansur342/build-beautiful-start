@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { BLOG_POSTS, type BlogPost } from "./index";
+import { BLOG_POSTS, type BlogPost } from "@/content/blog";
 import { Share2, Twitter, Linkedin, Link as LinkIcon, Check, ArrowRight, ArrowLeft, Clock, Calendar } from "lucide-react";
 import { BreadcrumbBar } from "@/components/breadcrumb-bar";
 
@@ -44,7 +44,7 @@ function BlogPost() {
   const { post, related } = Route.useLoaderData();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_80%_0%,_rgba(16,185,129,0.10),_transparent_28rem),#fff]">
       <BreadcrumbBar title={post.title} />
 
       {/* Hero */}
@@ -60,7 +60,7 @@ function BlogPost() {
           <span>·</span>
           <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {post.readTime}</span>
         </div>
-        <h1 className="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1]">{post.title}</h1>
+        <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold tracking-tight leading-[1.04] sm:text-5xl">{post.title}</h1>
         <p className="mt-5 text-lg text-muted-foreground max-w-2xl">{post.excerpt}</p>
         <div className="mt-6">
           <ShareBar title={post.title} />
@@ -69,7 +69,7 @@ function BlogPost() {
 
       {/* Hero image */}
       <div className="max-w-5xl mx-auto px-6">
-        <div className="aspect-[16/9] overflow-hidden bg-muted border border-border">
+        <div className="aspect-[16/9] overflow-hidden rounded-2xl bg-muted border border-border shadow-sm">
           <img
             src={post.thumbnail}
             alt={post.title}
@@ -125,7 +125,7 @@ function BlogPost() {
 
       {/* Related */}
       {related.length > 0 && (
-        <section className="border-t border-border bg-muted/40">
+        <section className="border-t border-border bg-[#f7f8f5]">
           <div className="max-w-6xl mx-auto px-6 py-16">
             <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
               <div>

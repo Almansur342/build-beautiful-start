@@ -248,6 +248,18 @@ const LeadLensGate = {
     return { ok: false, reason: 'denied', message: 'Scan denied.' }
   },
 
+  async preflight(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) return { ok: false, reason: "bad_request", message: "No scan requests provided." }
+    const session = await this._ensureSession()
+    if (!session || !session.session_token) return { ok: false, reason: "invalid_session", message: "Cannot start scan right now because authorization could not be verified. Please try again." }
+    const device = await this.getDeviceFingerprint()
+    const payload = requests.map((item) => ({ website_url: String(item.website_url || item.url || "").slice(0, 500), event_id: String(item.event_id || item.eventId || "").slice(0, 80), scan_id: String(item.scan_id || item.scanId || "").slice(0, 80) }))
+    const result = await this._fetchJson("/api/public/scan/preflight", { session_token: session.session_token, device_fingerprint: device, requests: payload })
+    const data = result.data || {}
+    if (!result.ok) return { ok: false, reason: data.reason || "denied", message: data.message || "Cannot start scan right now because authorization could not be verified. Please try again.", remaining: data.remaining, reset_at: data.reset_at }
+    return { ok: true, ...data }
+  },
+
   // ---------- Batch authorize (opt-in) ----------
   // events: [{ website_url, eventId?, scanId? }]
   async authorizeBatch(events) {
@@ -267,6 +279,8 @@ const LeadLensGate = {
       const out = { website_url: String(e.website_url || '').slice(0, 500) }
       if (e.eventId) out.event_id = String(e.eventId).slice(0, 80)
       if (e.scanId) out.scan_id = String(e.scanId).slice(0, 80)
+      if (e.scan_token) out.scan_token = String(e.scan_token).slice(0, 80)
+      if (e.evidence && typeof e.evidence === 'object') out.evidence = e.evidence
       return out
     }).filter((e) => e.website_url)
     if (trimmed.length === 0) return { ok: false, reason: 'bad_request', message: 'No valid URLs in batch.' }

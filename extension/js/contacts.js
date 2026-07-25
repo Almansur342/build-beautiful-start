@@ -123,6 +123,7 @@ const Contacts = {
   domainAgePending: new Set(),
   domainAgeQueuedAt: {},
   bulkQueue: [],
+  bulkAuthorizations: new Map(),
   bulkRunning: new Map(),
   bulkDone: new Set(),
   bulkResults: [],
@@ -433,6 +434,7 @@ const Contacts = {
       }
     }
     Contacts.bulkQueue = []
+    Contacts.bulkAuthorizations = new Map()
     Contacts.bulkRunning = new Map()
     Contacts.bulkDone = new Set()
     Contacts.bulkResults = []
@@ -956,6 +958,10 @@ const Contacts = {
             row.technologyHistory
           ),
           summaryCounts: row.summaryCounts && typeof row.summaryCounts === 'object' ? row.summaryCounts : {},
+          intelligenceStatus: row.intelligenceStatus || '',
+          intelligenceSource: row.intelligenceSource || '',
+          intelligenceUpdatedAt: row.intelligenceUpdatedAt || '',
+          businessIntelligence: row.businessIntelligence || null,
         })
       }
 
@@ -989,6 +995,10 @@ const Contacts = {
         }
       }
 
+      if (row.intelligenceStatus) site.intelligenceStatus = row.intelligenceStatus
+      if (row.intelligenceSource) site.intelligenceSource = row.intelligenceSource
+      if (row.intelligenceUpdatedAt) site.intelligenceUpdatedAt = row.intelligenceUpdatedAt
+      if (row.businessIntelligence && typeof row.businessIntelligence === 'object') site.businessIntelligence = row.businessIntelligence
       Contacts.toArray(row.sources).forEach((source) => site.sources.add(source))
       site.leadMeta = {
         ...site.leadMeta,
@@ -4300,7 +4310,8 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       phones: contacts.filter((row) => row.type === 'phone').length,
     }
     const classification = Contacts.businessType(site)
-    const angles = globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || []
+    const backend = Contacts.backendIntelligence(site)
+    const angles = backend?.outreachAngles || globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || []
     const eligibility = Contacts.prospectEligibility(site)
     const verdict = Contacts.leadVerdict(site)
     const readiness = Contacts.outreachReadiness(site)
@@ -4319,14 +4330,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       technologies: plain(site.technologies instanceof Map ? [...site.technologies.values()] : Contacts.toArray(site.technologies)),
       technologyHistory: plain(Contacts.normaliseTechnologyHistory(site.technologyHistory)),
       rejectedContacts: plain(Contacts.toArray(site.rejectedContacts)),
-      businessIntelligence: {
-        classification: plain(classification),
-        eligibility: plain(eligibility),
-        verdict: plain(verdict),
-        outreachReadiness: plain(readiness),
-        websiteOpportunity: plain(opportunity),
-        outreachAngles: plain(angles),
-      },
+      businessIntelligence: plain(Contacts.businessIntelligenceForExport(site)),
       summaryCounts,
     }
   },
@@ -4465,14 +4469,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
         note: 'Deterministic evidence only. No local language model or paid AI verdict was applied.',
       },
       domain: Contacts.normaliseDomainAge(site?.domainAge),
-      businessIntelligence: {
-        classification: Contacts.businessType(site),
-        eligibility: Contacts.prospectEligibility(site),
-        verdict: Contacts.leadVerdict(site),
-        outreachReadiness: Contacts.outreachReadiness(site),
-        websiteOpportunity: Contacts.opportunityScore(site),
-        outreachAngles: globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || [],
-      },
+      businessIntelligence: Contacts.businessIntelligenceForExport(site),
     }
   },
 
@@ -4882,6 +4879,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
 
     if (!isResume) {
       Contacts.bulkQueue = unique
+      Contacts.bulkAuthorizations = new Map()
       Contacts.bulkRunning = new Map()
       Contacts.bulkDone = new Set()
       Contacts.bulkResults = []
@@ -4912,6 +4910,30 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       return
     }
 
+    const preflight = await Contacts.authorizeBulkQueue()
+    if (!preflight.ok) {
+      Contacts.bulkPaused = false
+      Contacts.bulkCancelled = false
+      Contacts.setBulkControls(false)
+      Contacts.updateBulkProgress()
+      Contacts.renderBulkSummary()
+      if (status) status.textContent = preflight.message || 'Bulk scan authorization failed before any website was opened.'
+      Contacts.showToast(preflight.message || 'Bulk scan authorization failed before any website was opened.', 'error')
+      await Contacts.persistBulkWorkspace()
+      return
+    }
+
+    if (!Contacts.bulkQueue.length) {
+      Contacts.bulkPaused = false
+      Contacts.bulkCancelled = false
+      Contacts.setBulkControls(false)
+      Contacts.updateBulkProgress()
+      Contacts.renderBulkSummary()
+      if (status) status.textContent = 'Bulk authorization complete. ' + preflight.blocked + ' website' + (preflight.blocked === 1 ? '' : 's') + ' were blocked before scanning. Nothing left to open.'
+      await Contacts.persistBulkWorkspace()
+      return
+    }
+
     Contacts.bulkPaused = false
     Contacts.bulkCancelled = false
     await Contacts.captureBulkOriginalTab()
@@ -4928,6 +4950,61 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     Contacts.showToast(isResume ? 'Bulk scan resumed.' : 'Bulk scan started.', 'info')
     await Contacts.persistBulkWorkspace()
     Contacts.bulkPump()
+  },
+
+  async authorizeBulkQueue() {
+    const queued = [...new Set(Contacts.bulkQueue.filter((url) => !Contacts.bulkDone.has(url)))]
+    Contacts.bulkAuthorizations = new Map()
+    if (!queued.length) return { ok: true, allowed: 0, blocked: 0 }
+
+    const status = document.getElementById('bulk-import-status')
+    if (status) status.textContent = 'Authorizing ' + queued.length.toLocaleString() + ' websites before opening tabs...'
+
+    const result = await sendMessage('contacts.js', 'preflightPageScans', [queued])
+      .catch((error) => ({ ok: false, status: 'authorization-failed', message: String(error?.message || error) }))
+
+    if (!result?.ok) {
+      return {
+        ok: false,
+        message: result?.message || 'Bulk scan authorization failed before any website was opened.',
+        reason: result?.status || result?.reason || 'authorization-failed',
+      }
+    }
+
+    const allowed = []
+    let blocked = 0
+    const rows = Array.isArray(result.results) ? result.results : []
+
+    for (const url of queued) {
+      const cleanUrl = Contacts.cleanUrl(url) || url
+      const row = rows.find((item) => (Contacts.cleanUrl(item.website_url || item.url || '') || item.website_url || item.url) === cleanUrl)
+      if (row?.allowed && row.scan_token) {
+        const auth = {
+          website_url: row.website_url || url,
+          event_id: row.event_id,
+          scan_id: row.scan_id,
+          scan_token: row.scan_token,
+          allowed: true,
+        }
+        Contacts.bulkAuthorizations.set(url, auth)
+        allowed.push(url)
+        continue
+      }
+
+      const reason = row?.reason === 'quota_blocked' || row?.reason === 'quota_exceeded'
+        ? 'quota-blocked'
+        : (row?.reason || 'authorization-blocked')
+      blocked += 1
+      Contacts.bulkDone.add(url)
+      await Contacts.recordBulkResult(url, reason, row?.message || 'Not authorized for this bulk scan.')
+      await Contacts.yieldToUi()
+    }
+
+    Contacts.bulkQueue = allowed
+    Contacts.bulkStats = Contacts.normaliseBulkStats(Contacts.bulkStats)
+    Contacts.updateBulkProgress()
+    Contacts.renderBulkSummary()
+    return { ok: true, allowed: allowed.length, blocked, remaining: result.remaining, limit: result.limit, used: result.used, reset_at: result.reset_at }
   },
 
   stopBulkImport() {
@@ -5053,13 +5130,20 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       }
 
       const pendingKey = `pending:${url}`
+      const authorization = Contacts.bulkAuthorizations.get(url)
+      if (!authorization?.scan_token) {
+        Contacts.bulkDone.add(url)
+        await Contacts.recordBulkResult(url, 'authorization-blocked', 'Missing bulk scan authorization token.')
+        Contacts.scheduleBulkPump(0)
+        return
+      }
       Contacts.bulkRunning.set(pendingKey, { url, pending: true, startedAt: Date.now() })
       Contacts.updateBulkProgress()
       Contacts.renderBulkSummary()
       if (status) {
         status.textContent = `Opening ${Contacts.bulkRunning.size} tab${Contacts.bulkRunning.size === 1 ? '' : 's'} Â· Remaining ${Contacts.bulkQueue.length}`
       }
-      const begin = await sendMessage('contacts.js', 'beginPageScan', [url, 'bulk']).catch((error) => ({ ok: false, status: 'quota-check-failed', message: String(error?.message || error) }))
+      const begin = await sendMessage('contacts.js', 'beginPageScan', [url, 'bulk', authorization]).catch((error) => ({ ok: false, status: 'quota-check-failed', message: String(error?.message || error) }))
       if (!begin?.ok && begin !== true) {
         Contacts.bulkRunning.delete(pendingKey)
         const reason = begin?.status === 'quota_exceeded' ? 'quota-blocked' : (begin?.status || 'blocked')
@@ -5087,6 +5171,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
 
         Contacts.bulkRunning.set(tab.id, {
           url,
+          authorization,
           startedAt: Date.now(),
           loadedAt: 0,
           timeoutId: Contacts.createBulkTimeout(
@@ -5260,7 +5345,8 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     try {
       const ping = await Contacts.sendBulkTabMessage(tabId, { source: 'contacts.js', func: 'ping', args: [] })
       if (!ping?.ready && ping?.ok === false) throw new Error(ping.error || ping.status || 'Content script not ready')
-      const response = await Contacts.sendBulkTabMessage(tabId, { source: 'contacts.js', func: 'startLeadLensScan', args: ['bulk'] })
+      const record = Contacts.bulkRunning.get(tabId)
+      const response = await Contacts.sendBulkTabMessage(tabId, { source: 'contacts.js', func: 'startLeadLensScan', args: ['bulk', record?.authorization || null] })
       if (response?.ok === false) {
         if (response.status === 'disabled-domain') {
           Contacts.finishBulkTab(tabId, url, 'skipped-enterprise', 'Known non-prospect or excluded domain')
@@ -6295,22 +6381,55 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     return currencyMatches.length === 1 ? currencyMatches[0] : currencyMatches.length > 1 ? 'MULTI' : ''
   },
 
+  backendIntelligence(site = {}) {
+    const intelligence = site?.businessIntelligence && typeof site.businessIntelligence === 'object'
+      ? site.businessIntelligence
+      : null
+    return site?.intelligenceStatus === 'backend_generated' && intelligence ? intelligence : null
+  },
+
+  intelligenceStatus(site = {}) {
+    if (Contacts.backendIntelligence(site)) return 'backend_generated'
+    if (site?.intelligenceStatus === 'pending_backend') return 'pending_backend'
+    return 'local_fallback'
+  },
+
+  backendPendingIntelligence(site = {}) {
+    return Contacts.intelligenceStatus(site) === 'pending_backend'
+  },
+
+  pendingClassification(site = {}) {
+    return { id: 'pending_backend', label: 'Pending backend intelligence', confidence: 'Low', confidenceScore: 0, reasons: ['Backend final intelligence has not been generated yet.'], size: { id: 'unknown', label: 'Unknown', confidence: 'Low', reasons: [] }, approach: 'Wait for backend intelligence before final scoring or outreach.', authority: 'backend_pending' }
+  },
+
+  businessIntelligenceForExport(site = {}) {
+    const backend = Contacts.backendIntelligence(site)
+    if (backend) return { status: 'backend_generated', final: true, ...backend }
+    if (Contacts.backendPendingIntelligence(site)) {
+      return { status: 'pending_backend', final: false, classification: Contacts.pendingClassification(site), eligibility: { status: 'manual_review', entityType: 'pending_backend', label: 'Pending backend intelligence', reason: 'Backend intelligence has not completed yet.', reasons: ['Do not use local intelligence as final authority.'], excluded: false }, verdict: { excluded: false, label: 'Pending backend intelligence', reason: 'Final verdict must come from backend.' }, outreachReadiness: { score: 0, label: 'Pending backend intelligence', reasons: ['Backend final readiness is pending.'], fit: 'Manual review' }, websiteOpportunity: { score: 0, label: 'Pending backend intelligence', pitch: 'Backend final opportunity score is pending.', factors: {} }, outreachAngles: [], confidenceLabels: { classification: 'Low', outreachReadiness: 'Low', websiteOpportunity: 'Low', evidence: 'Low' }, suppression: { suppressed: true, researchOnly: true, reasons: ['Backend intelligence pending.'] } }
+    }
+    return { status: 'local_fallback', final: false, note: 'Local deterministic fallback only; backend is the final authority when available.', classification: Contacts.businessType(site), eligibility: Contacts.prospectEligibility(site), verdict: Contacts.leadVerdict(site), outreachReadiness: Contacts.outreachReadiness(site), websiteOpportunity: Contacts.opportunityScore(site), outreachAngles: globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || [] }
+  },
+
   displayWebsiteType(site) {
     return 'Website profile'
   },
 
   businessType(site) {
+    const backend = Contacts.backendIntelligence(site)
+    if (backend?.classification) return { ...backend.classification, authority: 'backend' }
+    if (Contacts.backendPendingIntelligence(site)) return Contacts.pendingClassification(site)
     const eligibility = Contacts.prospectEligibility(site)
     if (eligibility.entityType === 'internal-test') {
       return { id: 'internal-test', label: 'Internal/Test Domain', confidence: 'High', confidenceScore: 100, reasons: eligibility.reasons, size: { id: 'micro', label: 'Internal/test', confidence: 'High', reasons: [] }, approach: 'Do not contact.' }
     }
     const classified = globalThis.LeadLensIntelligence?.classifyBusiness?.(site)
-    if (classified) return classified
+    if (classified) return { ...classified, authority: 'local_fallback' }
     const inferred = Contacts.inferIndustryValue(site)
     const labels = {
       agency: 'IT / digital agency', education: 'Education / university', nonprofit: 'Nonprofit / charity', finance: 'Financial services', restaurant: 'Restaurant / food business', legal: 'Law firm / legal services', clinic: 'Healthcare / clinic', ecommerce: 'Ecommerce / retail', 'real-estate': 'Real estate', hospitality: 'Hotel / hospitality', 'home-services': 'Local service business', cleaning: 'Local service business', construction: 'Local service business', portfolio: 'Portfolio / personal brand', fitness: 'Local service business', 'salon-spa': 'Local service business',
     }
-    return { id: inferred || 'general', label: labels[inferred] || 'General business', confidence: inferred ? 'Medium' : 'Low', confidenceScore: inferred ? 64 : 48, reasons: inferred ? ['Page content and website signals match this category.'] : ['No single sector dominated; using a general business profile.'], size: { id: 'small', label: 'Small', confidence: 'Low', reasons: [] }, approach: inferred === 'agency' ? 'Peer-to-peer collaboration or white-label delivery.' : 'Use the clearest evidence-backed improvement angle.' }
+    return { id: inferred || 'general', label: labels[inferred] || 'General business', confidence: inferred ? 'Medium' : 'Low', confidenceScore: inferred ? 64 : 48, reasons: inferred ? ['Page content and website signals match this category.'] : ['No single sector dominated; using a general business profile.'], size: { id: 'small', label: 'Small', confidence: 'Low', reasons: [] }, approach: inferred === 'agency' ? 'Peer-to-peer collaboration or white-label delivery.' : 'Use the clearest evidence-backed improvement angle.', authority: 'local_fallback' }
   },
 
   largeEcommerceBrandSignal(site = {}) {
@@ -6952,7 +7071,19 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
   outreachStrategy(site) {
     const business = Contacts.businessType(site)
     const bestEmail = Contacts.bestOutreachEmail(site)
-    const angles = globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || []
+    const backend = Contacts.backendIntelligence(site)
+    if (!backend && Contacts.backendPendingIntelligence(site)) {
+      return {
+        channel: 'Manual review',
+        tone: 'Wait for backend intelligence',
+        angle: 'Pending backend intelligence',
+        angles: [],
+        business,
+        firstMessage: 'Backend final intelligence is pending. Do not use local outreach copy as final authority.',
+        followUp: 'Backend final intelligence is pending; retry or resubmit the scan before outreach.',
+      }
+    }
+    const angles = backend?.outreachAngles || globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || []
     const primary = angles[0] || { title: 'Evidence-backed website review', direction: business.approach || 'Lead with the clearest captured website signal.', confidence: 'Low', reason: 'Available evidence supports a soft review approach.', evidence: [] }
     const channel = bestEmail
       ? `Email: ${bestEmail.value}`
@@ -7152,6 +7283,9 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
   },
 
   outreachReadiness(site) {
+    const backend = Contacts.backendIntelligence(site)
+    if (backend?.outreachReadiness) return { ...backend.outreachReadiness, authority: 'backend' }
+    if (Contacts.backendPendingIntelligence(site)) return { score: 0, label: 'Pending backend intelligence', reasons: ['- backend final readiness pending'], fit: 'Manual review', authority: 'backend_pending' }
     const eligibility = Contacts.prospectEligibility(site)
 
     if (eligibility.status !== 'eligible' || Contacts.leadExclusion(site).excluded) {
@@ -7614,8 +7748,25 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
   },
 
   localAiInsight(site) {
-    // Always-on local intelligence: deterministic evidence scoring remains the
-    // source of truth. Model-style candidates never overwrite captured facts.
+    // Local deterministic fallback only. Backend-generated intelligence is the
+    // final authority when available; pending records must not use this as final.
+    if (Contacts.backendPendingIntelligence(site)) {
+      return {
+        provider: 'LeadLens backend pending',
+        intelligenceStatus: 'pending_backend',
+        final: false,
+        type: 'pending_backend',
+        businessType: 'Pending backend intelligence',
+        estimatedSize: '',
+        pageIntent: 'pending_backend',
+        businessSummary: 'Backend final intelligence has not been generated yet.',
+        pitchAngle: 'Pending backend intelligence',
+        recommendedService: 'Wait for backend intelligence before scoring or outreach.',
+        outreachAngles: [],
+        validation: { label: 'Pending backend intelligence', reason: 'Final classification, scoring, verdict, and outreach angle must come from backend.', confidence: 'Low' },
+        proofStrength: { classification: 'Low', scanQuality: 'Pending' },
+      }
+    }
     const runtime = globalThis.LeadLensIntelligence
     if (!runtime) return null
     const classification = runtime.classifyBusiness(site)
@@ -7627,7 +7778,9 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       ? (urlText.match(/\b(contact|about|services?|pricing|products?|blog|news|careers?|team)\b/)?.[1] || 'interior page')
       : 'homepage'
     return {
-      provider: 'LeadLens local intelligence',
+      provider: 'LeadLens local fallback',
+      intelligenceStatus: 'local_fallback',
+      final: false,
       runtimeVersion: runtime.version,
       type: classification.id,
       businessType: classification.label,
@@ -8137,6 +8290,9 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
   },
 
   opportunityScore(site) {
+    const backend = Contacts.backendIntelligence(site)
+    if (backend?.websiteOpportunity) return { ...backend.websiteOpportunity, authority: 'backend' }
+    if (Contacts.backendPendingIntelligence(site)) return { score: 0, pitch: 'Backend final opportunity score is pending.', label: 'Pending backend intelligence', factors: {}, authority: 'backend_pending' }
     const leadMeta = Contacts.normaliseLeadMeta(site.leadMeta)
     const eligibility = Contacts.prospectEligibility(site)
     if (eligibility.status !== 'eligible') {
@@ -8308,6 +8464,9 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
   },
 
   leadVerdict(site) {
+    const backend = Contacts.backendIntelligence(site)
+    if (backend?.verdict) return { ...backend.verdict, authority: 'backend' }
+    if (Contacts.backendPendingIntelligence(site)) return { excluded: false, label: 'Pending backend intelligence', reason: 'Final verdict must come from backend.', authority: 'backend_pending' }
     const eligibility = Contacts.prospectEligibility(site)
     const exclusion = Contacts.leadExclusion(site)
     const opportunity = Contacts.opportunityScore(site).score
@@ -9029,6 +9188,9 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     }
   },
   prospectEligibility(site = {}) {
+    const backend = Contacts.backendIntelligence(site)
+    if (backend?.eligibility) return { ...backend.eligibility, authority: 'backend' }
+    if (Contacts.backendPendingIntelligence(site)) return { status: 'manual_review', entityType: 'pending_backend', label: 'Pending backend intelligence', reason: 'Backend final eligibility is pending.', reasons: ['Do not use local eligibility as final authority.'], excluded: false, authority: 'backend_pending' }
     const host = Contacts.rootDomain(site.host || Contacts.hostFromUrl(site.websiteUrl))
     const fullHost = Contacts.normaliseHost(site.host || Contacts.hostFromUrl(site.websiteUrl))
     const url = String(site.websiteUrl || '')
@@ -10073,6 +10235,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Utils.withTimeout(Contacts.init(), 18000, 'Lead Vault initialization timed out')
     .catch((error) => Contacts.handleInitFailure(error))
 })
+
 
 
 

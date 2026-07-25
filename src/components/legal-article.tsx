@@ -14,15 +14,15 @@ export function LegalArticle({
   children: ReactNode;
 }) {
   return (
-    <article className="max-w-3xl">
+    <article className="max-w-3xl pb-8">
       <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
         {eyebrow}
       </div>
-      <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]">
+      <h1 className="mt-3 font-serif text-4xl md:text-5xl font-semibold tracking-tight leading-[1.04]">
         {title}
       </h1>
       <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{lede}</p>
-      <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground border-t border-b border-border py-3">
+      <div className="mt-7 flex items-center gap-3 text-xs text-muted-foreground border-y border-border/80 py-3">
         <span className="bg-foreground text-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider">
           Current
         </span>

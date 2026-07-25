@@ -202,8 +202,10 @@ function TicketThread({ ticketId, ticket, profile }: { ticketId: string; ticket:
       support={support}
       disabled={closed}
       sending={replyMut.isPending}
+      sendError={replyMut.isError ? "Message could not be sent. Please try again." : null}
       onSend={(v) => replyMut.mutate(v)}
       placeholder="Type your message… (Enter to send, Shift+Enter for newline)"
+      liveLabel="Live updates enabled for this conversation"
       header={
         <div className="min-w-0">
           <div className="text-sm font-semibold truncate">{ticket?.subject ?? "Conversation"}</div>

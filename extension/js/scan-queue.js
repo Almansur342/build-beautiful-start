@@ -46,6 +46,15 @@ const LeadLensScanQueue = {
   // ctx is a frozen LeadLensScanContext object.
   async enqueue(ctx) {
     if (!ctx || !ctx.url || !ctx.event_id) return
+    let evidence = null
+    try {
+      if (self.LeadLensDriver?.collectBackendIntelligenceEvidence) {
+        evidence = await self.LeadLensDriver.collectBackendIntelligenceEvidence(ctx)
+      }
+      if (self.LeadLensDriver?.applyBackendIntelligence) {
+        await self.LeadLensDriver.applyBackendIntelligence(ctx.url, null, 'pending_backend')
+      }
+    } catch (_) { /* keep scan-event durability even if evidence snapshotting fails */ }
     await this._withStoreLock(async () => {
       const items = await this._load()
       if (items.some((it) => it.event_id === ctx.event_id)) return
@@ -53,6 +62,8 @@ const LeadLensScanQueue = {
         scan_id: ctx.scan_id,
         event_id: ctx.event_id,
         website_url: ctx.url,
+        scan_token: ctx.scan_token,
+        evidence,
         queued_at: Date.now(),
         attempts: 0,
         next_attempt_at: 0,
@@ -115,6 +126,8 @@ const LeadLensScanQueue = {
         website_url: it.website_url,
         eventId: it.event_id,
         scanId: it.scan_id,
+        scan_token: it.scan_token,
+        evidence: it.evidence,
       })))
 
       // Delete only events individually acknowledged as stored/duplicate by
@@ -130,7 +143,17 @@ const LeadLensScanQueue = {
           // A positive per-event acknowledgement means consume_scan_quota has
           // durably stored this event_id (or confirmed the same id already
           // exists). Only then is the local copy removed.
-          if (row && row.ok) { drained += 1; continue }
+          if (row && row.ok) {
+            drained += 1
+            try {
+              if (row.intelligence_status === 'backend_generated' && row.intelligence && self.LeadLensDriver?.applyBackendIntelligence) {
+                await self.LeadLensDriver.applyBackendIntelligence(item.website_url, row.intelligence, 'backend_generated')
+              } else if (self.LeadLensDriver?.applyBackendIntelligence) {
+                await self.LeadLensDriver.applyBackendIntelligence(item.website_url, null, 'pending_backend')
+              }
+            } catch (_) { /* local intelligence status update is best-effort */ }
+            continue
+          }
           const reason = row?.reason || 'missing_ack'
           const attempts = Number(item.attempts || 0) + 1
           const resetAt = row?.reset_at ? new Date(row.reset_at).getTime() : 0

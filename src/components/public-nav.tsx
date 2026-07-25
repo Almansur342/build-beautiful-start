@@ -29,14 +29,14 @@ export function PublicNav() {
   if (pathname.startsWith("/auth") || isDashboard(pathname)) return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-[#fbfbf8]/85 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-6 h-[4.5rem] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Qrinux" width={28} height={28} className="h-7 w-7" />
-          <span className="font-semibold tracking-tight">Qrinux LeadLens</span>
+          <span className="font-semibold tracking-tight text-[15px]">Qrinux <span className="text-emerald-700">LeadLens</span></span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
+        <nav className="hidden md:flex items-center gap-6 text-[13px] font-medium text-muted-foreground">
           {LINKS.map((l) => (
             <Link
               key={l.to}

@@ -1,4 +1,4 @@
-'use strict'
+﻿'use strict'
 /* eslint-env browser */
 /* globals chrome */
 
@@ -34,7 +34,7 @@ function inject(src, id, message) {
       onMessageRef = onMessage
       window.addEventListener('message', onMessage)
 
-      // Hard timeout — prevents content script from hanging forever
+      // Hard timeout â€” prevents content script from hanging forever
       // when the injected script never posts a matching message.
       timeoutId = setTimeout(() => {
         cleanup()
@@ -396,7 +396,7 @@ const Content = {
     const position = document.createElement('button')
     position.className = 'leadlens-position'
     position.type = 'button'
-    position.textContent = '↕'
+    position.textContent = 'â†•'
     position.title = 'Move LeadLens scan button'
 
     scan.addEventListener('click', () => Content.startLeadLensScan('button'))
@@ -455,13 +455,13 @@ const Content = {
     return { ok: true, ready: true, url: location.href }
   },
 
-  async startLeadLensScan(source = 'manual') {
+  async startLeadLensScan(source = 'manual', authorization = null) {
     if (Content.scanRunning) {
       return { ok: false, status: 'already-running' }
     }
 
     Content.scanRunning = true
-    Content.updateScanButton('Checking…', true)
+    Content.updateScanButton('Checkingâ€¦', true)
     let scanStarted = false
     let scanCompleted = false
 
@@ -478,8 +478,8 @@ const Content = {
         return { ok: false, status: allowed?.status || 'blocked', error: message }
       }
 
-      Content.updateScanButton('Scanning…', true)
-      await Content.driver('beginPageScan', [location.href, source])
+      Content.updateScanButton('Scanningâ€¦', true)
+      await Content.driver('beginPageScan', [location.href, source, authorization])
       scanStarted = true
       const result = await Content.scan()
 
@@ -487,7 +487,7 @@ const Content = {
         throw new Error(result?.error || result?.status || 'Scan failed')
       }
 
-      Content.updateScanButton('Scanned ✓', false)
+      Content.updateScanButton('Scanned âœ“', false)
       scanCompleted = true
       // Persist the successful scan event in the background queue before the
       // bulk controller is told to close this tab. Previously reportScanComplete
@@ -569,9 +569,9 @@ const Content = {
       '[aria-label*="accept all" i]',
       '[title*="accept all" i]',
     ]
-    const acceptPattern = /^(?:ok(?:ay)?|got\s*it|continue|yes(?:,? .*)?|allow(?: all)?(?: cookies?)?|enable(?: cookies| all)?|accept(?: all| everything| cookies?)?(?:\s+(?:cookies?|and continue))?|accept and (?:continue|close)|i accept|i agree|agree(?: all)?(?:\s+and\s+continue)?|consent|i understand|understood|approve|opt[\s\-]?in|that'?s ?ok|accepter tout|tout accepter|j'accepte|accepter|alle akzeptieren|akzeptieren|zustimmen|aceptar todo|aceptar todas|aceptar|accetta tutti|accetta tutto|accetta|aceitar todos|aceitar tudo|aceitar|alles accepteren|accepteer alles|akkoord|godk[aä]nn alla|till[aå]t alla|hyv[aä]ksy kaikki|hyv[aä]ksy|akceptuj wszystko|akceptuj[eę]|zgadzam si[eę]|p[řr]ijmout v[šs]e|souhlas[ií]m|prijať všetko|prihvati sve|sprejmi vse|accepter alle|godta alle|accepter alle|accepter alt|accept[ăa] tot|приемам всички|принять все|прийняти всі|t[üu]m[üu]n[üu] kabul et|hepsini kabul et|όλα αποδοχή|αποδοχή όλων|elfogadom mindet|terima semua|setuju semua|ยอมรับทั้งหมด|chấp nhận tất cả|সব গ্রহণ করুন|সব কুকি গ্রহণ|सभी स्वीकार करें|सब स्वीकार करें|سب قبول کریں|تمام کو قبول کریں|כל הקבצים|אישור|모두 동의|동의|허용|同意全部|接受全部|すべて受け入れる|同意する|أوافق على الكل|قبول الكل)$/i
-    const rejectPattern = /reject|decline|deny|refuse|manage|preference|setting|necessary only|essential only|customi[sz]e|learn more|details|read more|opt[\s\-]?out|withdraw|disagree|no thanks|ablehnen|rechazar|rifiuta|recusar|weiger|رفض|拒否|거부/i
-    const contextPattern = /cookie|consent|gdpr|privacy|cmp|tracking|datenschutz|cookies?|privacidad|confidentialit[ée]|consenso|соглас|куки|çerez|คุกกี้|কুকি|कुकी/i
+    const acceptPattern = /^(?:ok(?:ay)?|got\s*it|continue|yes(?:,? .*)?|allow(?: all)?(?: cookies?)?|enable(?: cookies| all)?|accept(?: all| everything| cookies?)?(?:\s+(?:cookies?|and continue))?|accept and (?:continue|close)|i accept|i agree|agree(?: all)?(?:\s+and\s+continue)?|consent|i understand|understood|approve|opt[\s\-]?in|that'?s ?ok|accepter tout|tout accepter|j'accepte|accepter|alle akzeptieren|akzeptieren|zustimmen|aceptar todo|aceptar todas|aceptar|accetta tutti|accetta tutto|accetta|aceitar todos|aceitar tudo|aceitar|alles accepteren|accepteer alles|akkoord|godk[aÃ¤]nn alla|till[aÃ¥]t alla|hyv[aÃ¤]ksy kaikki|hyv[aÃ¤]ksy|akceptuj wszystko|akceptuj[eÄ™]|zgadzam si[eÄ™]|p[Å™r]ijmout v[Å¡s]e|souhlas[iÃ­]m|prijaÅ¥ vÅ¡etko|prihvati sve|sprejmi vse|accepter alle|godta alle|accepter alle|accepter alt|accept[Äƒa] tot|Ð¿Ñ€Ð¸ÐµÐ¼Ð°Ð¼ Ð²ÑÐ¸Ñ‡ÐºÐ¸|Ð¿Ñ€Ð¸Ð½ÑÑ‚ÑŒ Ð²ÑÐµ|Ð¿Ñ€Ð¸Ð¹Ð½ÑÑ‚Ð¸ Ð²ÑÑ–|t[Ã¼u]m[Ã¼u]n[Ã¼u] kabul et|hepsini kabul et|ÏŒÎ»Î± Î±Ï€Î¿Î´Î¿Ï‡Î®|Î±Ï€Î¿Î´Î¿Ï‡Î® ÏŒÎ»Ï‰Î½|elfogadom mindet|terima semua|setuju semua|à¸¢à¸­à¸¡à¸£à¸±à¸šà¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”|cháº¥p nháº­n táº¥t cáº£|à¦¸à¦¬ à¦—à§à¦°à¦¹à¦£ à¦•à¦°à§à¦¨|à¦¸à¦¬ à¦•à§à¦•à¦¿ à¦—à§à¦°à¦¹à¦£|à¤¸à¤­à¥€ à¤¸à¥à¤µà¥€à¤•à¤¾à¤° à¤•à¤°à¥‡à¤‚|à¤¸à¤¬ à¤¸à¥à¤µà¥€à¤•à¤¾à¤° à¤•à¤°à¥‡à¤‚|Ø³Ø¨ Ù‚Ø¨ÙˆÙ„ Ú©Ø±ÛŒÚº|ØªÙ…Ø§Ù… Ú©Ùˆ Ù‚Ø¨ÙˆÙ„ Ú©Ø±ÛŒÚº|×›×œ ×”×§×‘×¦×™×|××™×©×•×¨|ëª¨ë‘ ë™ì˜|ë™ì˜|í—ˆìš©|åŒæ„å…¨éƒ¨|æŽ¥å—å…¨éƒ¨|ã™ã¹ã¦å—ã‘å…¥ã‚Œã‚‹|åŒæ„ã™ã‚‹|Ø£ÙˆØ§ÙÙ‚ Ø¹Ù„Ù‰ Ø§Ù„ÙƒÙ„|Ù‚Ø¨ÙˆÙ„ Ø§Ù„ÙƒÙ„)$/i
+    const rejectPattern = /reject|decline|deny|refuse|manage|preference|setting|necessary only|essential only|customi[sz]e|learn more|details|read more|opt[\s\-]?out|withdraw|disagree|no thanks|ablehnen|rechazar|rifiuta|recusar|weiger|Ø±ÙØ¶|æ‹’å¦|ê±°ë¶€/i
+    const contextPattern = /cookie|consent|gdpr|privacy|cmp|tracking|datenschutz|cookies?|privacidad|confidentialit[Ã©e]|consenso|ÑÐ¾Ð³Ð»Ð°Ñ|ÐºÑƒÐºÐ¸|Ã§erez|à¸„à¸¸à¸à¸à¸µà¹‰|à¦•à§à¦•à¦¿|à¤•à¥à¤•à¥€/i
     const candidates = new Map()
 
     const visible = (element) => {
@@ -592,7 +592,7 @@ const Content = {
       const clearAccept = acceptPattern.test(value)
       const hasContext = contextPattern.test(context)
       if (!explicit && !(clearAccept && hasContext)) return
-      const score = (explicit ? 14 : 0) + (clearAccept ? 10 : 0) + (hasContext ? 7 : 0) + (/all|tout|alle|todo|tutti|সব|सभी|全部|모두|الكل/i.test(value) ? 3 : 0)
+      const score = (explicit ? 14 : 0) + (clearAccept ? 10 : 0) + (hasContext ? 7 : 0) + (/all|tout|alle|todo|tutti|à¦¸à¦¬|à¤¸à¤­à¥€|å…¨éƒ¨|ëª¨ë‘|Ø§Ù„ÙƒÙ„/i.test(value) ? 3 : 0)
       if (score < 14) return
       candidates.set(element, { element, banner: contextNode, score, text: value })
     }
@@ -607,7 +607,12 @@ const Content = {
     const best = [...candidates.values()].sort((a, b) => b.score - a.score)[0]
     if (!best) return { enabled: true, clicked: false, verified: false, reason: 'not-found' }
     try {
+      if (Content.cookieAutoAcceptClicked) return { enabled: true, clicked: false, verified: false, reason: 'already-clicked-this-scan' }
+
       const banner = best.banner
+
+      Content.cookieAutoAcceptClicked = true
+
       best.element.click()
       await new Promise((resolve) => setTimeout(resolve, 450))
       const hidden = !best.element.isConnected || !visible(best.element) || (banner && (!banner.isConnected || !visible(banner)))
@@ -725,7 +730,7 @@ const Content = {
       } catch (e) { /* ignore */ }
       const poll = setInterval(() => { if (isReady()) finish('poll') }, 400)
       const timeout = setTimeout(() => finish('timeout'), maxWaitMs)
-      // Nudge after 1.2s if still not ready — gives initial render a chance first.
+      // Nudge after 1.2s if still not ready â€” gives initial render a chance first.
       nudgeTimer = setTimeout(() => { if (!done) nudge() }, 1200)
     })
   },
@@ -736,6 +741,7 @@ const Content = {
   async scan() {
     const url = location.href
     Content.scanCompleteSent = false
+    Content.cookieAutoAcceptClicked = false
 
     if (await Content.driver('isDisabledDomain', url)) {
       return { ok: false, status: 'disabled-domain' }
@@ -749,15 +755,15 @@ const Content = {
 
     const cookieConsent = await Content.tryAcceptCookieConsent()
     if (cookieConsent.clicked) {
-      // After dismissing the wall the page often re-renders heavily —
+      // After dismissing the wall the page often re-renders heavily â€”
       // give the DOM a real chance to settle instead of a fixed 900ms.
       await new Promise((resolve) => setTimeout(resolve, 400))
       await Content.waitForDomReady(6000)
     }
     await new Promise((resolve) => setTimeout(resolve, 350))
-    if (Content.scanButtonLabel) Content.scanButtonLabel.textContent = 'Preparing…'
+    if (Content.scanButtonLabel) Content.scanButtonLabel.textContent = 'Preparingâ€¦'
     await Content.warmUpPageBeforeScan()
-    if (Content.scanButtonLabel) Content.scanButtonLabel.textContent = 'Scanning…'
+    if (Content.scanButtonLabel) Content.scanButtonLabel.textContent = 'Scanningâ€¦'
 
     try {
       // HTML
@@ -985,7 +991,7 @@ const Content = {
    */
   async auditSeo(url) {
     const title = (document.title || '').trim()
-    // Description fallback chain: meta[name="description"] → og:description → twitter:description.
+    // Description fallback chain: meta[name="description"] â†’ og:description â†’ twitter:description.
     // Some sites use property="description" or mix attributes; check all combinations.
     const readMetaAny = (key) => {
       const lower = String(key || '').toLowerCase()
@@ -1878,7 +1884,7 @@ const Content = {
     const publishedAt = readMetaAny('article:published_time') || readMetaAny('datePublished') || readMetaAny('date') || ''
     const modifiedAt = readMetaAny('article:modified_time') || readMetaAny('dateModified') || readMetaAny('last-modified') || ''
     const timeValues = Array.from(document.querySelectorAll('time[datetime]')).map((node) => node.getAttribute('datetime') || '').filter(Boolean).slice(0, 30)
-    const copyrightYears = [...new Set((textContent.match(/(?:©|copyright)?\s*(?:19|20)\d{2}(?:\s*[-–]\s*(?:19|20)\d{2})?/gi) || []).flatMap((value) => value.match(/(?:19|20)\d{2}/g) || []))].slice(0, 12)
+    const copyrightYears = [...new Set((textContent.match(/(?:Â©|copyright)?\s*(?:19|20)\d{2}(?:\s*[-â€“]\s*(?:19|20)\d{2})?/gi) || []).flatMap((value) => value.match(/(?:19|20)\d{2}/g) || []))].slice(0, 12)
     const localeValues = [readMetaAny('og:locale'), readMetaAny('content-language'), lang, ...hreflangLinks.map(({ language }) => language)].filter(Boolean)
     const addressCountries = [...new Set(businessIdentity.addresses.map((address) => address.addressCountry).filter(Boolean))]
     const addressTexts = [...new Set([
@@ -1910,7 +1916,7 @@ const Content = {
       productSchema: [...schemaTypes].some((type) => /Product|Offer|AggregateOffer/i.test(String(type))),
       cartLinks,
       checkoutLinks: countLinks(/\b(checkout|pay now|payment)\b/i),
-      priceMentions: (textContent.match(/(?:[$€£৳₹]|USD|CAD|GBP|EUR|BDT|INR|AED|SAR)\s?\d[\d,.]*/gi) || []).slice(0, 30),
+      priceMentions: (textContent.match(/(?:[$â‚¬Â£à§³â‚¹]|USD|CAD|GBP|EUR|BDT|INR|AED|SAR)\s?\d[\d,.]*/gi) || []).slice(0, 30),
       currencies: currencyCodes,
       paymentAccepted: businessIdentity.paymentAccepted,
     }
@@ -2937,3 +2943,5 @@ if (/complete|interactive|loaded/.test(document.readyState)) {
 } else {
   document.addEventListener('DOMContentLoaded', Content.init)
 }
+
+
