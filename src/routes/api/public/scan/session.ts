@@ -101,6 +101,7 @@ export const Route = createFileRoute("/api/public/scan/session")({
           user_agent: user_agent ?? null,
         });
         if (insertError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not start session. Please try again." }, { status: 503, origin });
+        logSecurityEvent({ eventType: "session.created", severity: "info", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: user_agent });
 
         return jsonResponse({
           ok: true,
