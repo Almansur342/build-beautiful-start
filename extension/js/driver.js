@@ -371,18 +371,21 @@ const Driver = {
       if (typeof self !== 'undefined' && self.LeadLensGate) {
         const gate = await self.LeadLensGate.authorize(url)
         if (!gate.ok) {
-          try {
-            chrome.notifications && chrome.notifications.create({
-              type: 'basic',
-              iconUrl: chrome.runtime.getURL('images/icon_128.png'),
-              title: 'Qrinux LeadLens — scan blocked',
-              message: gate.message || 'Scan blocked. Check your API key or plan.',
-            })
-          } catch (e) {}
+          const silent = gate.reason === 'network_error' || gate.reason === 'service_error'
+          if (!silent) {
+            try {
+              chrome.notifications && chrome.notifications.create({
+                type: 'basic',
+                iconUrl: chrome.runtime.getURL('images/icon_128.png'),
+                title: 'Qrinux LeadLens — scan blocked',
+                message: gate.message || 'Scan blocked. Check your API key or plan.',
+              })
+            } catch (e) {}
+          }
           return []
         }
       }
-    } catch (e) { /* fail-open on gate error would be worse — treat as blocked */ return [] }
+    } catch (e) { return [] }
     return analyze(...args)
   },
 
@@ -845,14 +848,17 @@ const Driver = {
         if (url && typeof self !== 'undefined' && self.LeadLensGate) {
           const gate = await self.LeadLensGate.authorize(url)
           if (!gate.ok) {
-            try {
-              chrome.notifications && chrome.notifications.create({
-                type: 'basic',
-                iconUrl: chrome.runtime.getURL('images/icon_128.png'),
-                title: 'Qrinux LeadLens — scan blocked',
-                message: gate.message || 'Scan blocked. Check your API key or plan.',
-              })
-            } catch (e) {}
+            const silent = gate.reason === 'network_error' || gate.reason === 'service_error'
+            if (!silent) {
+              try {
+                chrome.notifications && chrome.notifications.create({
+                  type: 'basic',
+                  iconUrl: chrome.runtime.getURL('images/icon_128.png'),
+                  title: 'Qrinux LeadLens — scan blocked',
+                  message: gate.message || 'Scan blocked. Check your API key or plan.',
+                })
+              } catch (e) {}
+            }
             return
           }
         }

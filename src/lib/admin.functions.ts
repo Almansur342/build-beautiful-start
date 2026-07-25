@@ -114,3 +114,33 @@ export const adminAssignPlan = createServerFn({ method: 'POST' })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const adminListUserScans = createServerFn({ method: 'GET' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { user_id: string; page?: number; page_size?: number }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const page = Math.max(0, data.page ?? 0);
+    const size = Math.min(100, Math.max(5, data.page_size ?? 20));
+    const from = page * size;
+    const to = from + size - 1;
+    const [{ data: rows, count }, todayRes, profileRes] = await Promise.all([
+      supabaseAdmin
+        .from('scan_logs')
+        .select('id, website_url, scanned_at', { count: 'exact' })
+        .eq('user_id', data.user_id)
+        .order('scanned_at', { ascending: false })
+        .range(from, to),
+      supabaseAdmin.rpc('get_today_scan_count', { _user_id: data.user_id }),
+      supabaseAdmin.from('profiles').select('email, full_name').eq('id', data.user_id).maybeSingle(),
+    ]);
+    return {
+      rows: rows ?? [],
+      total: count ?? 0,
+      page,
+      pageSize: size,
+      today: todayRes.data ?? 0,
+      profile: profileRes.data,
+    };
+  });
