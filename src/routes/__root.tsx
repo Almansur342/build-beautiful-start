@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -145,9 +146,12 @@ function RootComponent() {
     return () => { mounted = false; };
   }, [router, queryClient]);
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const hideNav = pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/_authenticated");
+
   return (
     <QueryClientProvider client={queryClient}>
-      <PublicNav />
+      {!hideNav && <PublicNav />}
       <Outlet />
     </QueryClientProvider>
   );
