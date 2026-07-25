@@ -128,27 +128,13 @@ export const Route = createFileRoute("/api/public/scan/batch")({
             continue;
           }
           lastRemaining = row.remaining ?? lastRemaining;
-          if (!row.duplicate) {
-            const sixtySecondsAgo = new Date(Date.now() - 60_000).toISOString();
-            const { data: recent } = await admin
-              .from("scan_logs")
-              .select("id")
-              .eq("user_id", kRow.user_id)
-              .eq("website_url", ev.website_url)
-              .gte("scanned_at", sixtySecondsAgo)
-              .limit(1)
-              .maybeSingle();
-            if (!recent) {
-              await admin.from("scan_logs").insert({ user_id: kRow.user_id, api_key_id: kRow.id, website_url: ev.website_url });
-            }
-          }
           results.push({ event_id: ev.event_id, ok: true, remaining: row.remaining, duplicate: !!row.duplicate });
         }
 
         await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", kRow.id);
         await admin.from("extension_sessions").update({ last_used_at: new Date().toISOString() }).eq("id", sessionRow.id);
 
-        return jsonResponse({ ok: true, plan: planLabel, limit, remaining: lastRemaining, results, dropped: Math.max(0, events.length - capped.length) }, { origin });
+        return jsonResponse({ ok: true, plan: planLabel, limit, remaining: lastRemaining, results, batch_cap: batchCap, dropped: Math.max(0, events.length - capped.length) }, { origin });
       },
     },
   },

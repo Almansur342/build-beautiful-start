@@ -54,7 +54,7 @@ function ApiKeyPage() {
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "qrinux-leadlens-v1.13.2.zip";
+        a.download = "qrinux-leadlens-v1.13.3.zip";
         a.click();
         URL.revokeObjectURL(a.href);
       })

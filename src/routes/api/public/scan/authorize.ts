@@ -131,13 +131,14 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         }
 
         if (!websiteUrl) {
-          const today = new Date(new Date().toISOString().slice(0, 10)).toISOString();
-          const { count } = await admin
-            .from("scan_logs")
-            .select("id", { count: "exact", head: true })
+          const today = new Date().toISOString().slice(0, 10);
+          const { data: usage } = await admin
+            .from("user_usage_daily")
+            .select("used_count")
             .eq("user_id", keyRow.user_id)
-            .gte("scanned_at", today);
-          const used = count ?? 0;
+            .eq("usage_date", today)
+            .maybeSingle();
+          const used = usage?.used_count ?? 0;
           await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
           return jsonResponse({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used) }, { origin });
         }
@@ -158,20 +159,6 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           return jsonResponse({ ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}). Upgrade for more scans.`, remaining: 0, limit, plan: planLabel }, { status: 429, origin });
         }
 
-        if (!row.duplicate) {
-          const sixtySecondsAgo = new Date(Date.now() - 60_000).toISOString();
-          const { data: recent } = await admin
-            .from("scan_logs")
-            .select("id")
-            .eq("user_id", keyRow.user_id)
-            .eq("website_url", websiteUrl)
-            .gte("scanned_at", sixtySecondsAgo)
-            .limit(1)
-            .maybeSingle();
-          if (!recent) {
-            await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
-          }
-        }
         await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
 
         return jsonResponse({ ok: true, plan: planLabel, limit, remaining: row.remaining, duplicate: row.duplicate }, { origin });

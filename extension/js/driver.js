@@ -48,6 +48,9 @@ function enqueueContactItemsWrite(task) {
 }
 
 const activePageScans = new Map()
+// Key contexts by the full scan URL instead of hostname. A bulk list can
+// legitimately contain multiple pages from one host; hostname keys caused
+// concurrent scans to overwrite each other's event_id before persistence.
 const activeScanContexts = new Map()
 
 const scanSessionTtl = 1000 * 60 * 2
@@ -655,8 +658,9 @@ const Driver = {
 
   async beginPageScan(url) {
     const hostname = Driver.normaliseScanHostname(url)
+    const scanKey = String(url || '').split('#')[0].slice(0, 500)
 
-    if (!hostname) {
+    if (!hostname || !scanKey) {
       return false
     }
 
@@ -665,7 +669,7 @@ const Driver = {
     const ctx = self.LeadLensScanContext
       ? await self.LeadLensScanContext.createFromUrl(url)
       : null
-    if (ctx) activeScanContexts.set(hostname, ctx)
+    if (ctx) activeScanContexts.set(scanKey, ctx)
     Driver.persistPageScanSessions()
 
     return true
@@ -673,8 +677,9 @@ const Driver = {
 
   async endPageScan(url, completed = false) {
     const hostname = Driver.normaliseScanHostname(url)
+    const scanKey = String(url || '').split('#')[0].slice(0, 500)
 
-    if (!hostname) {
+    if (!hostname || !scanKey) {
       return false
     }
 
@@ -682,8 +687,8 @@ const Driver = {
     // scan can still be associated with this website, but normal browsing stays
     // outside automatic scan processing.
     activePageScans.set(hostname, Date.now() + 15000)
-    const ctx = activeScanContexts.get(hostname)
-    activeScanContexts.delete(hostname)
+    const ctx = activeScanContexts.get(scanKey)
+    activeScanContexts.delete(scanKey)
     if (completed && ctx && self.LeadLensScanQueue) {
       await self.LeadLensScanQueue.enqueue(ctx)
     }

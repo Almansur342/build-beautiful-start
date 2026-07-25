@@ -17,9 +17,8 @@ const DEFAULT_FLUSH_MINUTES = 1               // chrome.alarms minimum in prod i
 
 const LeadLensScanQueue = {
   _flushing: false,
-  // Every queue read-modify-write must be serialized. Bulk scans can finish in
-  // many tabs at once; without this lock, later storage writes overwrite events
-  // that another tab just persisted.
+  _serverCap: null,
+  // Every queue read-modify-write in this service-worker instance is serialized.
   _storeChain: Promise.resolve(),
 
   _withStoreLock(task) {
@@ -105,6 +104,7 @@ const LeadLensScanQueue = {
         const cfg = await self.LeadLensGate.getRemoteConfig(false)
         if (cfg && Number(cfg.batch_max_events) > 0) cap = Math.min(50, Number(cfg.batch_max_events))
       } catch (_) {}
+      if (Number(this._serverCap) > 0) cap = Math.min(cap, Number(this._serverCap))
 
       if (ready.length === 0) { await this._save(items); return { ok: true, drained: 0, remaining: items.length } }
       const inFlight = ready.slice(0, cap)
@@ -120,12 +120,16 @@ const LeadLensScanQueue = {
       // Delete only events individually acknowledged as stored/duplicate by
       // the authoritative backend. Every other event remains durable locally.
       if (result && result.ok) {
+        if (Number(result.batch_cap) > 0) this._serverCap = Number(result.batch_cap)
         const rows = Array.isArray(result.results) ? result.results : []
         const byId = new Map(rows.map((row) => [row.event_id, row]))
         const retry = []
         let drained = 0
         for (const item of inFlight) {
           const row = byId.get(item.event_id)
+          // A positive per-event acknowledgement means consume_scan_quota has
+          // durably stored this event_id (or confirmed the same id already
+          // exists). Only then is the local copy removed.
           if (row && row.ok) { drained += 1; continue }
           const reason = row?.reason || 'missing_ack'
           const attempts = Number(item.attempts || 0) + 1
