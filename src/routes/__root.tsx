@@ -148,7 +148,8 @@ function RootComponent() {
   }, [router, queryClient]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hideNav = pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/_authenticated");
+  const DASH_ROUTES = ["/dashboard", "/admin", "/api-key", "/devices", "/billing", "/support", "/feedback", "/settings"];
+  const hideNav = DASH_ROUTES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   return (
     <QueryClientProvider client={queryClient}>
