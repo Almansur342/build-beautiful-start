@@ -133,9 +133,16 @@ export const adminListAllTickets = createServerFn({ method: 'GET' })
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from('support_tickets')
-      .select('*, profiles(email, full_name)')
+      .select('*')
       .order('last_message_at', { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const tickets = data ?? [];
+    const userIds = Array.from(new Set(tickets.map((t: any) => t.user_id).filter(Boolean))) as string[];
+    let profilesById: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
+      profilesById = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p]));
+    }
+    return tickets.map((t: any) => ({ ...t, profiles: profilesById[t.user_id] ?? null }));
   });
