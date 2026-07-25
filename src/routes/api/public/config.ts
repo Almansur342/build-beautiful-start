@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { corsFactory, corsHeaders, jsonResponse, preflight, bodyTooLarge } from "./-cors";
+import { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } from "./-rate-limit";
 
 // Whitelisted keys returned to the extension. Never expose secrets or admin-only keys.
 const PUBLIC_KEYS = [
@@ -11,33 +13,25 @@ const PUBLIC_KEYS = [
   "notice",
 ] as const;
 
-function corsHeaders(origin: string | null) {
-  return {
-    "Access-Control-Allow-Origin": origin ?? "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "300",
-  };
-}
+const METHODS = "GET, OPTIONS" as const;
 
 export const Route = createFileRoute("/api/public/config")({
   server: {
     handlers: {
-      OPTIONS: async ({ request }) =>
-        new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
+      OPTIONS: async ({ request }) => preflight(request.headers.get("origin"), METHODS),
       GET: async ({ request }) => {
         const origin = request.headers.get("origin");
-        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("./-rate-limit");
+        if (bodyTooLarge(request)) {
+          return jsonResponse({ ok: false, reason: "payload_too_large", message: "Request too large." }, { status: 413, origin, methods: METHODS });
+        }
         const ip = clientIp(request);
+        // Public config: fail-open on rate-limit infra failure (availability > strictness).
         const rl = await checkRateLimit(`config:${ip}`, RATE_LIMIT_PRESETS.config.max, RATE_LIMIT_PRESETS.config.windowSeconds);
-        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsHeaders);
+        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsFactory(METHODS), METHODS);
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data, error } = await supabaseAdmin.from("app_settings").select("key, value");
         if (error) {
-          return new Response(JSON.stringify({ ok: false, message: "Config unavailable" }), {
-            status: 503,
-            headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
-          });
+          return jsonResponse({ ok: false, message: "Config unavailable" }, { status: 503, origin, methods: METHODS });
         }
         const out: Record<string, unknown> = {};
         for (const row of data ?? []) {
@@ -55,7 +49,7 @@ export const Route = createFileRoute("/api/public/config")({
             headers: {
               "Content-Type": "application/json",
               "Cache-Control": "public, max-age=60",
-              ...corsHeaders(origin),
+              ...corsHeaders(origin, METHODS),
             },
           },
         );
