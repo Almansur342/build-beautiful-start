@@ -2851,20 +2851,19 @@ const Content = {
   driver(func, args) {
     return new Promise((resolve) => {
       try {
-        chrome.runtime.sendMessage(
-          {
-            source: 'content.js',
-            func,
-            args:
-              args instanceof Error
-                ? [args.toString()]
-                : args
-                ? Array.isArray(args)
-                  ? args
-                  : [args]
-                : [],
-          },
-          (response) => {
+        const normArgs =
+          args instanceof Error
+            ? [args.toString()]
+            : args
+            ? Array.isArray(args)
+              ? args
+              : [args]
+            : []
+        const guard = (typeof self !== 'undefined' && self.LeadLensMessageGuard) || null
+        const envelope = guard
+          ? guard.envelope('content.js', func, normArgs)
+          : { source: 'content.js', func, args: normArgs }
+        chrome.runtime.sendMessage(envelope, (response) => {
             if (chrome.runtime.lastError) {
               const error = new Error(`${chrome.runtime.lastError.message}: Driver.${func}`)
               if (func !== 'error') {
