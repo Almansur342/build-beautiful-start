@@ -837,16 +837,16 @@ const Driver = {
       // Qrinux LeadLens — log this page scan + enforce daily quota
       try {
         if (url && typeof self !== 'undefined' && self.LeadLensGate) {
-          // Stable event id per (url, 60s bucket) so retries of the same scan
-          // never double-count usage. Backend enforces atomic idempotency.
-          const bucket = Math.floor(Date.now() / 60000)
-          const eventId = 'evt_' + bucket + '_' + await (async () => {
-            try {
-              const buf = await self.crypto.subtle.digest('SHA-1', new TextEncoder().encode(url))
-              return Array.from(new Uint8Array(buf)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
-            } catch (_) { return Math.random().toString(36).slice(2, 18) }
-          })()
-          const scanId = (self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : ('scan_' + bucket + '_' + Math.random().toString(36).slice(2, 10))
+          // Phase C: build an immutable scan context up-front. All downstream
+          // work in this scan (enrichment, batching, logging) MUST reuse
+          // ctx.scan_id / ctx.event_id — do not derive a new id later.
+          const ctx = self.LeadLensScanContext
+            ? await self.LeadLensScanContext.createFromUrl(url)
+            : null
+          const eventId = ctx ? ctx.event_id : ('evt_' + Math.floor(Date.now() / 60000) + '_' + Math.random().toString(36).slice(2, 10))
+          const scanId = ctx ? ctx.scan_id : ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : ('scan_' + Math.random().toString(36).slice(2, 10)))
+          this._activeScanContext = ctx
+
           const gate = await self.LeadLensGate.authorize(url, { eventId, scanId })
           if (!gate.ok) {
             const silent = gate.reason === 'network_error' || gate.reason === 'service_error'

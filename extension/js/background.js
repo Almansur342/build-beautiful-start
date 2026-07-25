@@ -8,8 +8,10 @@
 // './name.js' — using 'js/...' would resolve to js/js/... and 404.
 try {
   importScripts(
-  './apikey-gate.js',
-  '../vendor/public-suffix-data.js',
+    './apikey-gate.js',
+    './scan-context.js',
+    './scan-queue.js',
+    '../vendor/public-suffix-data.js',
     './quality-runtime.js',
     './intelligence-runtime.js',
     './wappalyzer.js',
@@ -20,6 +22,22 @@ try {
 } catch (e) {
   // Surface load failures so we can spot them in the SW console.
   console.error('[LeadLens] importScripts failed:', e)
+}
+
+// Phase C: chrome.alarms drives the persistent scan-event queue flush. The
+// alarm survives service-worker eviction, so buffered events reach the
+// backend even after Chrome puts the worker to sleep between scans.
+try {
+  chrome.alarms && chrome.alarms.onAlarm.addListener((alarm) => {
+    if (!alarm || alarm.name !== self.LEADLENS_QUEUE_ALARM) return
+    if (self.LeadLensScanQueue) {
+      self.LeadLensScanQueue.flush().catch(() => {})
+    }
+  })
+  // Re-arm on worker startup so a fresh SW can drain a queue left behind.
+  if (self.LeadLensScanQueue) self.LeadLensScanQueue.ensureAlarm()
+} catch (e) {
+  console.error('[LeadLens] alarms wiring failed:', e)
 }
 
 // Extension pages send activation checks through the service worker. This is
