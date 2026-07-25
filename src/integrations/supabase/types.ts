@@ -357,6 +357,51 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          device_hash: string | null
+          event_type: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          reason: string | null
+          session_id: string | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          device_hash?: string | null
+          event_type: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          reason?: string | null
+          session_id?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          device_hash?: string | null
+          event_type?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          reason?: string | null
+          session_id?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
