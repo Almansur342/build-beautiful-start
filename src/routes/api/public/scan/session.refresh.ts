@@ -42,6 +42,10 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
       OPTIONS: async ({ request }) => new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
+        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("../_rate-limit");
+        const ip = clientIp(request);
+        const rl = await checkRateLimit(`refresh:${ip}`, RATE_LIMIT_PRESETS.refresh.max, RATE_LIMIT_PRESETS.refresh.windowSeconds);
+        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsHeaders);
         let raw: unknown;
         try { raw = await request.json(); } catch { return json({ ok: false, reason: "bad_request", message: "Invalid request body." }, { status: 400, origin }); }
         const parsed = schema.safeParse(raw);

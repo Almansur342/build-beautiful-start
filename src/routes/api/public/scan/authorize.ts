@@ -38,6 +38,10 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
       OPTIONS: async ({ request }) => new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
+        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("../_rate-limit");
+        const ip = clientIp(request);
+        const rl = await checkRateLimit(`authorize:${ip}`, RATE_LIMIT_PRESETS.authorize.max, RATE_LIMIT_PRESETS.authorize.windowSeconds);
+        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsHeaders);
         let rawBody: unknown;
         try {
           rawBody = await request.json();
