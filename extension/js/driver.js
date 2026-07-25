@@ -835,7 +835,7 @@ const Driver = {
     try {
       // Qrinux LeadLens — log this page scan + enforce daily quota
       try {
-        if (url && typeof self !== 'undefined' && self.LeadLensGate) {
+        if (url && typeof self !== 'undefined') {
           // Phase C: build an immutable scan context up-front. All downstream
           // work in this scan (enrichment, batching, logging) MUST reuse
           // ctx.scan_id / ctx.event_id — do not derive a new id later.
@@ -846,23 +846,49 @@ const Driver = {
           const scanId = ctx ? ctx.scan_id : ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : ('scan_' + Math.random().toString(36).slice(2, 10)))
           this._activeScanContext = ctx
 
-          const gate = await self.LeadLensGate.authorize(url, { eventId, scanId })
-          if (!gate.ok) {
-            const silent = gate.reason === 'network_error' || gate.reason === 'service_error'
-            if (!silent) {
-              try {
-                chrome.notifications && chrome.notifications.create({
-                  type: 'basic',
-                  iconUrl: chrome.runtime.getURL('images/icon_128.png'),
-                  title: 'Qrinux LeadLens — scan blocked',
-                  message: gate.message || 'Scan blocked. Check your API key or plan.',
-                })
-              } catch (e) {}
+          const enqueueFallback = async () => {
+            try {
+              if (self.LeadLensScanQueue) {
+                await self.LeadLensScanQueue.enqueue(ctx || { url, event_id: eventId, scan_id: scanId })
+              }
+            } catch (_) {}
+          }
+
+          if (self.LeadLensGate) {
+            const gate = await self.LeadLensGate.authorize(url, { eventId, scanId })
+            if (!gate.ok) {
+              // Transient failures: queue for retry via chrome.alarms and
+              // continue the scan so the local counter and server counter stay
+              // in sync once the queue drains. Backend dedupes by event_id.
+              const transient = gate.reason === 'network_error' || gate.reason === 'service_error' || gate.reason === 'rate_limited'
+              if (transient) {
+                await enqueueFallback()
+              } else {
+                try {
+                  chrome.notifications && chrome.notifications.create({
+                    type: 'basic',
+                    iconUrl: chrome.runtime.getURL('images/icon_128.png'),
+                    title: 'Qrinux LeadLens — scan blocked',
+                    message: gate.message || 'Scan blocked. Check your API key or plan.',
+                  })
+                } catch (e) {}
+                return
+              }
             }
-            return
+          } else {
+            // Gate script not loaded yet — queue and let the alarm drain it.
+            await enqueueFallback()
           }
         }
-      } catch (e) { /* fail closed */ return }
+      } catch (e) {
+        // Transient error contacting the gate — queue and continue so the
+        // scan still gets accounted for once connectivity returns.
+        try {
+          const ctx = this._activeScanContext
+          if (ctx && self.LeadLensScanQueue) await self.LeadLensScanQueue.enqueue(ctx)
+        } catch (_) {}
+      }
+
 
       items.cookies = items.cookies || {}
 
