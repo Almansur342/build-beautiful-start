@@ -481,14 +481,26 @@ const Driver = {
    * @param {Object} sender
    * @param {Function} callback
    */
-  onMessage({ source, func, args }, sender, callback) {
-    if (!func) {
-      return false
+  onMessage(rawMessage, sender, callback) {
+    // Phase E: strict envelope validation.
+    const guard = self.LeadLensMessageGuard
+    const verdict = guard
+      ? guard.validate(rawMessage, sender, { allowedMethods: allowedMessageMethods, allowTabSender: true })
+      : { ok: !!(sender && sender.id === chrome.runtime.id), source: rawMessage?.source, func: rawMessage?.func, args: rawMessage?.args || [] }
+
+    if (!verdict.ok) {
+      if (callback) callback({ error: verdict.reason || 'invalid-message' })
+      return !!callback
     }
 
-    // Phase 2 security: reject messages that did not originate from this extension.
-    if (!sender || sender.id !== chrome.runtime.id) {
-      if (callback) callback({ error: 'unauthorized-sender' })
+    const { source, func, args } = verdict
+
+    if (!allowedMessageMethods.has(func) || !Driver[func]) {
+      const error = new Error(`Method is not available: Driver.${func}`)
+      Driver.error(error)
+      if (callback) {
+        callback({ error: error.message })
+      }
       return !!callback
     }
 
@@ -496,16 +508,6 @@ const Driver = {
       Driver.log({ source, func, args })
     }
 
-    if (!allowedMessageMethods.has(func) || !Driver[func]) {
-      const error = new Error(`Method is not available: Driver.${func}`)
-      Driver.error(error)
-
-      if (callback) {
-        callback({ error: error.message })
-      }
-
-      return !!callback
-    }
 
 
     // A service-worker startup problem must never freeze Lead Vault requests.
