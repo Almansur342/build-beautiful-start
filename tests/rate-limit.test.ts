@@ -20,7 +20,6 @@ describe("clientIp", () => {
   });
   it("truncates absurdly long values", () => {
     const long = "9".repeat(300);
-    expect(clientIp(reqWith({ "cf-connecting-ip": long }).length ?? 0).toString()).toBeDefined();
     expect(clientIp(reqWith({ "cf-connecting-ip": long })).length).toBeLessThanOrEqual(64);
   });
 });
