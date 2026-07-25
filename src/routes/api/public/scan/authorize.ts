@@ -110,9 +110,23 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         }
 
         // Activation checks use an empty URL and must not consume scan quota.
+        // Also dedupe: skip logging when the same URL was scanned in the last 60s.
+        let logged = false;
         if (websiteUrl) {
-          const { error: scanError } = await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
-          if (scanError) return json({ ok: false, reason: "service_error", message: "Could not authorize this scan. Please try again." }, { status: 503, origin });
+          const sixtySecondsAgo = new Date(Date.now() - 60_000).toISOString();
+          const { data: recent } = await admin
+            .from("scan_logs")
+            .select("id")
+            .eq("user_id", keyRow.user_id)
+            .eq("website_url", websiteUrl)
+            .gte("scanned_at", sixtySecondsAgo)
+            .limit(1)
+            .maybeSingle();
+          if (!recent) {
+            const { error: scanError } = await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
+            if (scanError) return json({ ok: false, reason: "service_error", message: "Could not authorize this scan. Please try again." }, { status: 503, origin });
+            logged = true;
+          }
         }
         const { error: usageError } = await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
         if (usageError) return json({ ok: false, reason: "service_error", message: "Could not complete verification. Please try again." }, { status: 503, origin });
