@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { clientIp } from "../src/routes/api/public/_rate-limit";
+import { clientIp } from "../src/routes/api/public/-rate-limit";
 
 function reqWith(headers: Record<string, string>): Request {
   return new Request("https://example.com/api/public/config", { headers });

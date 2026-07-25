@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/config")({
         new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
       GET: async ({ request }) => {
         const origin = request.headers.get("origin");
-        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("./_rate-limit");
+        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("./-rate-limit");
         const ip = clientIp(request);
         const rl = await checkRateLimit(`config:${ip}`, RATE_LIMIT_PRESETS.config.max, RATE_LIMIT_PRESETS.config.windowSeconds);
         if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsHeaders);
