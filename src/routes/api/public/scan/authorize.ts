@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { z } from "zod";
+
+const authorizationSchema = z.object({
+  api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format"),
+  device_fingerprint: z.string().trim().min(8).max(200),
+  website_url: z.string().trim().max(500).default(""),
+});
 
 async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -30,17 +35,23 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
       OPTIONS: async ({ request }) => new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
-        let body: any;
-        try { body = await request.json(); } catch { return json({ ok: false, reason: "bad_request", message: "Invalid JSON" }, { status: 400, origin }); }
-        const apiKey = String(body.api_key ?? "").trim();
-        const device = String(body.device_fingerprint ?? "").trim();
-        const websiteUrl = String(body.website_url ?? "").slice(0, 500);
-        if (!apiKey || !device) return json({ ok: false, reason: "missing_fields", message: "api_key and device_fingerprint required" }, { status: 400, origin });
+        let rawBody: unknown;
+        try {
+          rawBody = await request.json();
+        } catch {
+          return json({ ok: false, reason: "bad_request", message: "Invalid request body." }, { status: 400, origin });
+        }
+        const parsed = authorizationSchema.safeParse(rawBody);
+        if (!parsed.success) {
+          return json({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid activation request." }, { status: 400, origin });
+        }
+        const { api_key: apiKey, device_fingerprint: device, website_url: websiteUrl } = parsed.data;
 
-        const admin = createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+        const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
         const keyHash = await sha256Hex(apiKey);
 
-        const { data: keyRow } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("key_hash", keyHash).maybeSingle();
+        const { data: keyRow, error: keyError } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("key_hash", keyHash).maybeSingle();
+        if (keyError) return json({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable. Please try again." }, { status: 503, origin });
         if (!keyRow) return json({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
         if (keyRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
 
@@ -50,7 +61,8 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
 
         // Device binding
         if (!keyRow.device_fingerprint) {
-          await admin.from("api_keys").update({ device_fingerprint: device, bound_at: new Date().toISOString() }).eq("id", keyRow.id);
+          const { error: bindError } = await admin.from("api_keys").update({ device_fingerprint: device, bound_at: new Date().toISOString() }).eq("id", keyRow.id);
+          if (bindError) return json({ ok: false, reason: "service_error", message: "Could not bind this device. Please try again." }, { status: 503, origin });
         } else if (keyRow.device_fingerprint !== device) {
           return json({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
@@ -97,11 +109,15 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           return json({ ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}). Upgrade for more scans.`, remaining: 0, limit, plan: planLabel }, { status: 429, origin });
         }
 
-        // Log the scan
-        await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
-        await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
+        // Activation checks use an empty URL and must not consume scan quota.
+        if (websiteUrl) {
+          const { error: scanError } = await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
+          if (scanError) return json({ ok: false, reason: "service_error", message: "Could not authorize this scan. Please try again." }, { status: 503, origin });
+        }
+        const { error: usageError } = await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
+        if (usageError) return json({ ok: false, reason: "service_error", message: "Could not complete verification. Please try again." }, { status: 503, origin });
 
-        return json({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used - 1) }, { origin });
+        return json({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used - (websiteUrl ? 1 : 0)) }, { origin });
       },
     },
   },
