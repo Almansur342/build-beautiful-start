@@ -38,13 +38,15 @@ export const Route = createFileRoute("/api/public/config")({
         for (const row of data ?? []) {
           if ((PUBLIC_KEYS as readonly string[]).includes(row.key)) out[row.key] = row.value;
         }
+        const payload = {
+          ok: true as const,
+          config: out,
+          server_time: new Date().toISOString(),
+          ttl_seconds: Math.max(60, Number(out.remote_config_ttl_minutes ?? 15) * 60),
+        };
+        const signed = await signPayload(payload);
         return new Response(
-          JSON.stringify({
-            ok: true,
-            config: out,
-            server_time: new Date().toISOString(),
-            ttl_seconds: Math.max(60, Number(out.remote_config_ttl_minutes ?? 15) * 60),
-          }),
+          JSON.stringify({ ...payload, sig: signed.sig, kid: signed.kid, alg: signed.alg }),
           {
             status: 200,
             headers: {
