@@ -49,7 +49,7 @@ export const adminListFeedback = createServerFn({ method: 'GET' })
       .limit(200);
     if (error) throw new Error(error.message);
     const rows = data ?? [];
-    const userIds = Array.from(new Set(rows.map((r: any) => r.user_id).filter(Boolean)));
+    const userIds = Array.from(new Set(rows.map((r: any) => r.user_id).filter(Boolean))) as string[];
     let profilesById: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase.from('profiles').select('id, email, full_name, avatar_url').in('id', userIds);
