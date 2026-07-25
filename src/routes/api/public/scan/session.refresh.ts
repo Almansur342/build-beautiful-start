@@ -51,42 +51,56 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
         const refreshHash = await sha256Hex(refresh_token);
 
+        // Track 3: refresh-token reuse detection.
+        // Look up the session using EITHER the current refresh token hash OR a
+        // previously-rotated hash. A match on `previous_refresh_token_hash`
+        // means someone replayed an already-rotated token — treat as theft.
         const { data: sessionRow, error } = await admin
           .from("extension_sessions")
-          .select("id, api_key_id, user_id, device_fingerprint, refresh_expires_at, revoked_at")
-          .eq("refresh_token_hash", refreshHash)
+          .select("id, api_key_id, user_id, device_fingerprint, refresh_expires_at, revoked_at, refresh_token_hash, previous_refresh_token_hash, rotation_count")
+          .or(`refresh_token_hash.eq.${refreshHash},previous_refresh_token_hash.eq.${refreshHash}`)
           .maybeSingle();
         if (error) return jsonResponse({ ok: false, reason: "service_error", message: "Session service is temporarily unavailable." }, { status: 503, origin });
         if (!sessionRow) {
-          // Track 3: refresh-token reuse detection — an unknown refresh token
-          // that hashes to nothing could be a rotated/stolen token; caller must re-activate.
           return jsonResponse({ ok: false, reason: "invalid_refresh", message: "Session expired. Please re-activate the extension with your API key." }, { status: 401, origin });
         }
+
+        // REUSE DETECTED: presented hash matches the previous (already-rotated)
+        // token. Revoke ALL live sessions bound to this api_key so both the
+        // legitimate client and the attacker are forced to re-activate.
+        if (sessionRow.previous_refresh_token_hash === refreshHash && sessionRow.refresh_token_hash !== refreshHash) {
+          const nowIso = new Date().toISOString();
+          await admin
+            .from("extension_sessions")
+            .update({ revoked_at: nowIso, reuse_detected_at: nowIso })
+            .eq("api_key_id", sessionRow.api_key_id)
+            .is("revoked_at", null);
+          return jsonResponse({ ok: false, reason: "reuse_detected", message: "Security alert: this session was replayed. All sessions revoked — please re-activate." }, { status: 401, origin });
+        }
+
         if (sessionRow.revoked_at) return jsonResponse({ ok: false, reason: "revoked", message: "Session revoked. Please re-activate." }, { status: 401, origin });
         if (new Date(sessionRow.refresh_expires_at) <= new Date()) return jsonResponse({ ok: false, reason: "expired", message: "Session expired. Please re-activate." }, { status: 401, origin });
         if (sessionRow.device_fingerprint !== device_fingerprint) {
-          // Device mismatch on a valid refresh token ⇒ possible token theft;
-          // revoke the whole session record.
           await admin.from("extension_sessions").update({ revoked_at: new Date().toISOString() }).eq("id", sessionRow.id);
           return jsonResponse({ ok: false, reason: "device_mismatch", message: "Device mismatch. Please re-activate." }, { status: 403, origin });
         }
 
-        // Rotate BOTH session token and refresh token (Track 3).
+        // Rotate BOTH tokens. Save the current hash into
+        // `previous_refresh_token_hash` so any replay of the old value trips
+        // the reuse detector above.
         const sessionToken = "qls_" + randomToken(32);
         const refreshToken = "qlr_" + randomToken(32);
         const nowIso = new Date().toISOString();
         const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
         const refreshExpiresAt = new Date(Date.now() + REFRESH_TTL_MS);
 
-        // Conditional update: only succeed if this row still holds the same
-        // refresh_token_hash we validated. If another concurrent refresh
-        // already rotated it, our update matches 0 rows and we return an error
-        // so the caller retries with the new token.
         const { data: updated, error: updateError } = await admin
           .from("extension_sessions")
           .update({
             session_token_hash: await sha256Hex(sessionToken),
             refresh_token_hash: await sha256Hex(refreshToken),
+            previous_refresh_token_hash: refreshHash,
+            rotation_count: (sessionRow.rotation_count ?? 0) + 1,
             session_expires_at: sessionExpiresAt.toISOString(),
             refresh_expires_at: refreshExpiresAt.toISOString(),
             last_used_at: nowIso,
@@ -97,6 +111,7 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
           .maybeSingle();
         if (updateError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not refresh session." }, { status: 503, origin });
         if (!updated) {
+          // Race: another concurrent refresh already rotated. Caller should retry with newest tokens.
           return jsonResponse({ ok: false, reason: "invalid_refresh", message: "Session already refreshed. Retry with the newest tokens." }, { status: 409, origin });
         }
 
