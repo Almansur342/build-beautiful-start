@@ -131,7 +131,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         const { error: usageError } = await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
         if (usageError) return json({ ok: false, reason: "service_error", message: "Could not complete verification. Please try again." }, { status: 503, origin });
 
-        return json({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used - (websiteUrl ? 1 : 0)) }, { origin });
+        return json({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used - (logged ? 1 : 0)) }, { origin });
       },
     },
   },
