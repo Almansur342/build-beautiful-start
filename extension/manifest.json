@@ -3,7 +3,7 @@
   "short_name": "LeadLens",
   "author": "Qrinux Inc.",
   "description": "Source-backed website intelligence, public contact discovery, business classification, multi-angle outreach guidance, technical/accessibility audits, resilient bulk scanning, and browser-based lead management.",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "default_locale": "en",
   "manifest_version": 3,
   "icons": {

@@ -363,29 +363,13 @@ const Driver = {
   },
 
   /**
-   * Wrapper for analyze — gated on Qrinux LeadLens API key + daily limit
+   * Wrapper for analyze — the per-page scan gate lives in onContentLoad,
+   * which is the single entry point per website with a real URL. Calling
+   * authorize() here would fire for every partial detection (headers, xhr,
+   * scripts) with an object arg, log "[object Object]" as website_url, and
+   * collapse every bulk-scan row into one via the 60s dedupe window.
    */
   async analyze(...args) {
-    try {
-      const url = (args[0] && args[0].toString && args[0].toString()) || ''
-      if (typeof self !== 'undefined' && self.LeadLensGate) {
-        const gate = await self.LeadLensGate.authorize(url)
-        if (!gate.ok) {
-          const silent = gate.reason === 'network_error' || gate.reason === 'service_error'
-          if (!silent) {
-            try {
-              chrome.notifications && chrome.notifications.create({
-                type: 'basic',
-                iconUrl: chrome.runtime.getURL('images/icon_128.png'),
-                title: 'Qrinux LeadLens — scan blocked',
-                message: gate.message || 'Scan blocked. Check your API key or plan.',
-              })
-            } catch (e) {}
-          }
-          return []
-        }
-      }
-    } catch (e) { return [] }
     return analyze(...args)
   },
 
