@@ -2579,13 +2579,31 @@ const Content = {
       .slice(0, 8)
 
 
+    // Phase 1 security: block sensitive paths from related-page crawling, omit credentials.
+    const SENSITIVE_PATH_RE = /(^|\/)(login|signin|sign-in|signup|sign-up|register|logout|account|dashboard|billing|checkout|cart|admin|settings|profile|payment|payments|pay|bank|insurance|health|government|api|oauth|auth|reset-password|password|wp-admin|wp-login)(\/|$|\?|#)/i
+    const isSafeSameOriginPublic = (href) => {
+      try {
+        const u = new URL(href, location.href)
+        if (u.origin !== location.origin) return false
+        if (!/^https?:$/.test(u.protocol)) return false
+        if (u.username || u.password) return false
+        if (SENSITIVE_PATH_RE.test(u.pathname)) return false
+        if (/(^|[?&])(access_token|id_token|token|api[_-]?key|secret|session|sig|signature)=/i.test(u.search)) return false
+        return true
+      } catch (_) { return false }
+    }
+
     const guessedContactPages = [
-      '/contact', '/contact-us', '/contacts', '/about', '/about-us', '/team', '/locations', '/location', '/privacy', '/terms', '/terms-of-service', '/legal', '/terms', '/terms-of-service', '/legal'
+      '/contact', '/contact-us', '/contacts', '/about', '/about-us', '/team', '/locations', '/location', '/privacy', '/terms', '/terms-of-service', '/legal'
     ]
-      .map((path) => new URL(path, location.origin).href)
+      .map((path) => { try { return new URL(path, location.origin).href } catch { return null } })
+      .filter(Boolean)
       .filter((href) => href !== location.href)
 
-    const contactPageFetchQueue = [...new Set([...linkedContactPages, ...guessedContactPages])].slice(0, 10)
+    const RELATED_MAX = 3
+    const contactPageFetchQueue = [...new Set([...linkedContactPages, ...guessedContactPages])]
+      .filter(isSafeSameOriginPublic)
+      .slice(0, RELATED_MAX)
 
     let queueIndex = 0
     const processLinkedHtml = ({ href, finalUrl = href, html, status = 200 }) => {
@@ -2605,6 +2623,31 @@ const Content = {
       }
     }
 
+    // Streaming byte-limited reader: abort oversized responses before the full body loads.
+    const MAX_BYTES = 1_500_000
+    const readWithLimit = async (response, controller) => {
+      const lenHeader = Number(response.headers.get('content-length') || '0')
+      if (lenHeader && lenHeader > MAX_BYTES) { try { controller.abort() } catch (_) {} return null }
+      const reader = response.body?.getReader?.()
+      if (!reader) {
+        const txt = await response.text()
+        return txt.length > MAX_BYTES ? null : txt
+      }
+      const chunks = []
+      let total = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        total += value.byteLength
+        if (total > MAX_BYTES) { try { controller.abort() } catch (_) {} return null }
+        chunks.push(value)
+      }
+      const buf = new Uint8Array(total)
+      let off = 0
+      for (const c of chunks) { buf.set(c, off); off += c.byteLength }
+      return new TextDecoder('utf-8', { fatal: false }).decode(buf)
+    }
+
     const fetchLinkedPage = async () => {
       while (queueIndex < contactPageFetchQueue.length) {
         const href = contactPageFetchQueue[queueIndex++]
@@ -2618,16 +2661,19 @@ const Content = {
           const controller = new AbortController()
           const timeout = setTimeout(() => controller.abort(), 5000)
           const response = await fetch(href, {
-            credentials: 'include',
+            credentials: 'omit',
             redirect: 'follow',
+            referrerPolicy: 'no-referrer',
             signal: controller.signal,
           })
           clearTimeout(timeout)
           if (!response.ok) continue
+          // Re-check the final URL after redirects.
+          if (!isSafeSameOriginPublic(response.url || href)) continue
           const contentType = response.headers.get('content-type') || ''
-          if (!/html/i.test(contentType)) continue
-          const html = await response.text()
-          if (html.length > 1500000) continue
+          if (!/^text\/html|application\/xhtml\+xml/i.test(contentType)) continue
+          const html = await readWithLimit(response, controller)
+          if (!html) continue
           const cachedPage = {
             href,
             finalUrl: response.url || href,
@@ -2646,7 +2692,7 @@ const Content = {
         }
       }
     }
-    await Promise.all(Array.from({ length: Math.min(3, contactPageFetchQueue.length) }, () => fetchLinkedPage()))
+    await Promise.all(Array.from({ length: Math.min(2, contactPageFetchQueue.length) }, () => fetchLinkedPage()))
 
     const filteredEmails = [...emails.values()].filter(({ value, sources = [] }) => {
       const local = String(value || '').split('@')[0]

@@ -88,20 +88,23 @@ const LeadLensGate = {
     }
   },
 
-  async authorize(url) {
+  async authorize(url, opts) {
     const apiKey = await this.getApiKey()
     if (!apiKey) return { ok: false, reason: 'no_api_key', message: 'API key required. Open the extension options and paste your API key from your Qrinux LeadLens dashboard.' }
     const deviceFp = await this.getDeviceFingerprint()
-    const result = await this.requestAuthorization({
+    const payload = {
       api_key: apiKey,
       device_fingerprint: deviceFp,
       website_url: url || '',
-    })
+    }
+    if (opts && opts.eventId) payload.event_id = String(opts.eventId).slice(0, 80)
+    if (opts && opts.scanId) payload.scan_id = String(opts.scanId).slice(0, 80)
+    const result = await this.requestAuthorization(payload)
     const data = result.data || {}
     if (!result.ok) {
       return { ok: false, reason: data.reason || 'denied', message: data.message || 'Scan denied.', remaining: data.remaining }
     }
-    return { ok: true, remaining: data.remaining, limit: data.limit, plan: data.plan }
+    return { ok: true, remaining: data.remaining, limit: data.limit, plan: data.plan, duplicate: !!data.duplicate }
   },
 }
 
