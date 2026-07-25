@@ -4,15 +4,11 @@
 // browser with their credentials attached. Instead it calls this endpoint
 // with a scan session's access token; the server performs an SSRF-safe
 // fetch and returns only sanitized, size-capped bytes.
-//
-// Auth: requires a valid extension session access token (Bearer).
-// Rate limits: per-IP + per-user + per-device.
 
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { corsHeaders, handleOptions, guardBodySize } from "../-cors";
+import { corsHeaders, preflight, bodyTooLarge, jsonResponse } from "../-cors";
 import {
-  RATE_LIMIT_PRESETS,
   checkComposite,
   clientIp,
   deviceBucketId,
@@ -34,31 +30,26 @@ async function sha256Hex(input: string): Promise<string> {
 export const Route = createFileRoute("/api/public/scan/fetch")({
   server: {
     handlers: {
-      OPTIONS: async ({ request }) => handleOptions(request, "POST, OPTIONS"),
+      OPTIONS: async ({ request }) => preflight(request.headers.get("origin"), "POST, OPTIONS"),
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
         const cors = (o: string | null) => corsHeaders(o, "POST, OPTIONS");
 
-        const sizeGuard = guardBodySize(request, 8 * 1024);
-        if (sizeGuard) return sizeGuard;
+        if (bodyTooLarge(request)) {
+          return jsonResponse({ ok: false, reason: "body_too_large" }, { status: 413, origin });
+        }
 
         const auth = request.headers.get("authorization") ?? "";
         const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
         if (!token) {
-          return new Response(JSON.stringify({ ok: false, reason: "missing_token" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json", ...cors(origin) },
-          });
+          return jsonResponse({ ok: false, reason: "missing_token" }, { status: 401, origin });
         }
 
         let body: z.infer<typeof BodySchema>;
         try {
           body = BodySchema.parse(await request.json());
         } catch {
-          return new Response(JSON.stringify({ ok: false, reason: "invalid_body" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...cors(origin) },
-          });
+          return jsonResponse({ ok: false, reason: "invalid_body" }, { status: 400, origin });
         }
 
         // Verify session token → resolves user + device.
@@ -66,14 +57,16 @@ export const Route = createFileRoute("/api/public/scan/fetch")({
         const tokenHash = await sha256Hex(token);
         const { data: session, error: sessionErr } = await supabaseAdmin
           .from("extension_sessions")
-          .select("id, user_id, device_fingerprint, revoked_at, access_expires_at")
-          .eq("access_token_hash", tokenHash)
+          .select("id, user_id, device_fingerprint, revoked_at, session_expires_at")
+          .eq("session_token_hash", tokenHash)
           .maybeSingle();
-        if (sessionErr || !session || session.revoked_at || new Date(session.access_expires_at) < new Date()) {
-          return new Response(JSON.stringify({ ok: false, reason: "invalid_session" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json", ...cors(origin) },
-          });
+        if (
+          sessionErr ||
+          !session ||
+          session.revoked_at ||
+          new Date(session.session_expires_at) < new Date()
+        ) {
+          return jsonResponse({ ok: false, reason: "invalid_session" }, { status: 401, origin });
         }
 
         const ip = clientIp(request);
@@ -86,7 +79,6 @@ export const Route = createFileRoute("/api/public/scan/fetch")({
           ],
           { failClosed: true },
         );
-        void RATE_LIMIT_PRESETS; // presets reused elsewhere; buckets above are explicit
         if (!rl.allowed) {
           return rateLimitResponse(rl.retryAfter, origin, cors);
         }
@@ -97,23 +89,21 @@ export const Route = createFileRoute("/api/public/scan/fetch")({
         });
 
         if (!result.ok) {
-          return new Response(
-            JSON.stringify({ ok: false, reason: result.reason, message: result.message }),
-            {
-              status: result.reason === "blocked_host" || result.reason === "blocked_scheme" ? 400 : 502,
-              headers: { "Content-Type": "application/json", ...cors(origin) },
-            },
+          const status = result.reason === "blocked_host" || result.reason === "blocked_scheme" ? 400 : 502;
+          return jsonResponse(
+            { ok: false, reason: result.reason, message: result.message },
+            { status, origin },
           );
         }
 
-        // Return only a subset of headers to avoid leaking upstream infrastructure.
+        // Only surface a small subset of upstream headers.
         const safeHeaders: Record<string, string> = {};
         for (const k of ["content-type", "content-language", "last-modified", "etag"]) {
           const v = result.headers[k];
           if (v) safeHeaders[k] = v;
         }
 
-        // Emit body as base64 to keep the JSON transport binary-safe.
+        // Base64-encode body to keep JSON transport binary-safe.
         let b64 = "";
         const CHUNK = 0x8000;
         for (let i = 0; i < result.body.length; i += CHUNK) {
@@ -121,19 +111,16 @@ export const Route = createFileRoute("/api/public/scan/fetch")({
         }
         const bodyB64 = btoa(b64);
 
-        return new Response(
-          JSON.stringify({
+        return jsonResponse(
+          {
             ok: true,
             status: result.status,
             final_url: result.url,
             headers: safeHeaders,
             body_b64: bodyB64,
             byte_length: result.body.length,
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json", ...cors(origin) },
           },
+          { status: 200, origin },
         );
       },
     },
