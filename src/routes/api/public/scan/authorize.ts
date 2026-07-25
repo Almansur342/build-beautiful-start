@@ -154,6 +154,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
         if (!row?.allowed) {
           const used = row?.used ?? 0;
+          logSecurityEvent({ eventType: "authorize.quota_exceeded", severity: "warn", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: request.headers.get("user-agent") ?? undefined, metadata: { used, limit, plan: planLabel } });
           return jsonResponse({ ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}). Upgrade for more scans.`, remaining: 0, limit, plan: planLabel }, { status: 429, origin });
         }
 
