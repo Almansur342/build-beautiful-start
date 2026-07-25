@@ -8,7 +8,9 @@ const schema = z.object({
   device_fingerprint: z.string().trim().min(8).max(200),
 });
 
-const SESSION_TTL_MS = 30 * 60 * 1000;
+// Track 3: short access-token TTL (15 min) forces frequent refresh, minimizing
+// the window a leaked session token remains valid.
+const SESSION_TTL_MS = 15 * 60 * 1000;
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function sha256Hex(input: string): Promise<string> {
