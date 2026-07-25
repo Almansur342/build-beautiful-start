@@ -236,6 +236,20 @@ const Content = {
   analyzedRequires: [],
   scanCompleteSent: false,
 
+  // Phase 2 security: explicit allowlist for chrome.runtime message dispatch.
+  // Any function not listed here cannot be invoked via extension messaging,
+  // even if it exists on the Content object.
+  ALLOWED_MESSAGE_METHODS: new Set([
+    'ping',
+    'startLeadLensScan',
+    'analyzeRequires',
+    'onGetTechnologies',
+    'extractContacts',
+    'extractEmails',
+  ]),
+
+
+
   /**
    * Initialise content script without collecting page data.
    * A scan only starts after the user clicks the floating button or a
