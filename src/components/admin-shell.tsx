@@ -6,10 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyDashboardData } from "@/lib/dashboard.functions";
 import {
   Shield, Users, CreditCard, MessageSquare, Star, Settings2,
-  ArrowLeft, LogOut, Menu, X, LayoutDashboard, RotateCcw, Sliders,
+  ArrowLeft, LogOut, Menu, X, LayoutDashboard, RotateCcw, Sliders, ShieldAlert,
 } from "lucide-react";
 
-export type AdminTab = "overview" | "users" | "plans" | "refunds" | "support" | "feedback" | "settings";
+export type AdminTab = "overview" | "users" | "plans" | "refunds" | "support" | "feedback" | "settings" | "security";
 
 const ADMIN_NAV: { key: AdminTab; label: string; icon: any }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -18,6 +18,7 @@ const ADMIN_NAV: { key: AdminTab; label: string; icon: any }[] = [
   { key: "refunds", label: "Refunds", icon: RotateCcw },
   { key: "support", label: "Support", icon: MessageSquare },
   { key: "feedback", label: "Feedback", icon: Star },
+  { key: "security", label: "Security log", icon: ShieldAlert },
   { key: "settings", label: "Remote config", icon: Sliders },
 ];
 
