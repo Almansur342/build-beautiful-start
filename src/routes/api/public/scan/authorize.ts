@@ -133,9 +133,8 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           return jsonResponse({ ok: true, plan: planLabel, used, limit, remaining: limit == null ? null : Math.max(0, limit - used), reset_at: resetAt }, { origin });
         }
 
-        const rpcArgs: { _user_id: string; _limit?: number | null; _event_id?: string; _scan_id?: string; _website_url?: string; _status?: string } = {
+        const rpcArgs: { _user_id: string; _event_id?: string; _scan_id?: string; _website_url?: string; _status?: string } = {
           _user_id: keyRow.user_id,
-          _limit: null,
           _website_url: websiteUrl,
           _status: "counted",
         };
