@@ -9,6 +9,7 @@
 try {
   importScripts(
     './message-guard.js',
+    './signed-config.js',
     './apikey-gate.js',
     './scan-context.js',
     './scan-queue.js',
