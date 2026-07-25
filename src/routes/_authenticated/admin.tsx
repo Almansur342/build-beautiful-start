@@ -124,6 +124,7 @@ function UsersTab() {
   const toggleBan = useServerFn(adminToggleBan);
   const assignPlan = useServerFn(adminAssignPlan);
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-overview"] });
+  const [historyUser, setHistoryUser] = useState<{ id: string; email: string } | null>(null);
 
   if (!overview.data) return <div className="text-sm text-muted-foreground">Loading…</div>;
   const o = overview.data;
@@ -147,7 +148,11 @@ function UsersTab() {
             const userKeys = o.apiKeys.filter((k: any) => k.user_id === u.id && !k.revoked_at);
             return (
               <tr key={u.id} className="border-t border-border/40">
-                <td className="py-3 px-5 font-medium">{u.email}</td>
+                <td className="py-3 px-5 font-medium">
+                  <button className="hover:underline text-left" onClick={() => setHistoryUser({ id: u.id, email: u.email })}>
+                    {u.email}
+                  </button>
+                </td>
                 <td className="py-3 pr-4 text-muted-foreground">{u.full_name ?? "—"}</td>
                 <td className="py-3 pr-4 text-muted-foreground text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
                 <td className="py-3 pr-4">
@@ -159,6 +164,9 @@ function UsersTab() {
                 </td>
                 <td className="py-3 pr-5">
                   <div className="flex flex-wrap gap-1">
+                    <button className="text-xs px-2 py-1 border border-border hover:bg-muted" onClick={() => setHistoryUser({ id: u.id, email: u.email })}>
+                      History
+                    </button>
                     <select
                       className="text-xs border border-border px-2 py-1 bg-background"
                       defaultValue=""
@@ -188,6 +196,72 @@ function UsersTab() {
           })}
         </tbody>
       </table>
+      {historyUser && <ScanHistoryDialog user={historyUser} onClose={() => setHistoryUser(null)} />}
+    </div>
+  );
+}
+
+function ScanHistoryDialog({ user, onClose }: { user: { id: string; email: string }; onClose: () => void }) {
+  const fetchScans = useServerFn(adminListUserScans);
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
+  const q = useQuery({
+    queryKey: ["admin-user-scans", user.id, page],
+    queryFn: () => fetchScans({ data: { user_id: user.id, page, page_size: pageSize } }),
+  });
+  const totalPages = q.data ? Math.max(1, Math.ceil(q.data.total / pageSize)) : 1;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-background w-full max-w-3xl max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="p-5 border-b border-border/60 flex items-start justify-between gap-4">
+          <div>
+            <div className="font-semibold">Scan history</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{user.email}</div>
+            {q.data && (
+              <div className="text-xs text-muted-foreground mt-2">
+                Today: <b>{q.data.today}</b> · Total: <b>{q.data.total}</b>
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Close</button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {q.isLoading ? (
+            <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+          ) : (q.data?.rows.length ?? 0) === 0 ? (
+            <div className="p-8 text-sm text-muted-foreground text-center">No scans yet.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase text-muted-foreground bg-neutral-50 sticky top-0">
+                  <th className="py-2 px-5">#</th>
+                  <th className="py-2 pr-4">Website</th>
+                  <th className="py-2 pr-5">Scanned at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {q.data!.rows.map((r: any, i: number) => (
+                  <tr key={r.id} className="border-t border-border/40">
+                    <td className="py-2 px-5 text-muted-foreground text-xs">{page * pageSize + i + 1}</td>
+                    <td className="py-2 pr-4 truncate max-w-[380px]">
+                      <a href={r.website_url} target="_blank" rel="noreferrer" className="hover:underline">{r.website_url}</a>
+                    </td>
+                    <td className="py-2 pr-5 text-muted-foreground text-xs whitespace-nowrap">{new Date(r.scanned_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div className="p-4 border-t border-border/60 flex items-center justify-between text-xs">
+          <div className="text-muted-foreground">Page {page + 1} of {totalPages}</div>
+          <div className="flex gap-2">
+            <button className="px-3 py-1 border border-border disabled:opacity-40" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</button>
+            <button className="px-3 py-1 border border-border disabled:opacity-40" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
