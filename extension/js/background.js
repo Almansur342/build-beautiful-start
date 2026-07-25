@@ -25,8 +25,19 @@ try {
 // Extension pages send activation checks through the service worker. This is
 // more reliable than a direct cross-origin request from an extension document
 // and uses the host permissions declared in manifest.json.
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.type !== 'qrinuxValidateKey') return false
+
+  // Phase 2 security: only accept requests from this extension. Reject anything
+  // originating from a web page (sender.tab present) or another extension.
+  if (!sender || sender.id !== chrome.runtime.id || sender.tab) {
+    sendResponse({
+      ok: false,
+      status: 0,
+      data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' },
+    })
+    return false
+  }
 
   if (!self.LeadLensGate || typeof self.LeadLensGate.requestAuthorization !== 'function') {
     sendResponse({
@@ -47,6 +58,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   return true
 })
+
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === 'install') {
