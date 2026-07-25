@@ -50,6 +50,27 @@ export type Database = {
         }
         Relationships: []
       }
+      api_rate_limits: {
+        Row: {
+          bucket: string
+          hits: number
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -495,6 +516,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_increment_rate_limit: {
+        Args: { _bucket: string; _max_hits: number; _window_seconds: number }
+        Returns: {
+          allowed: boolean
+          hits: number
+          retry_after: number
+        }[]
+      }
+      cleanup_api_rate_limits: { Args: never; Returns: undefined }
       consume_scan_quota: {
         Args: {
           _event_id?: string
