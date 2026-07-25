@@ -50,13 +50,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type !== 'qrinuxValidateKey' && message.type !== 'qrinuxStartSession') return false
 
   // Phase E: envelope + sender + nonce + top-level type allowlist enforcement.
+  // Note: extension-hosted pages opened as tabs (onboarding.html, options.html,
+  // contacts.html) have `sender.tab` set but still share chrome.runtime.id.
+  // We trust them because validateTopLevel already enforces sender.id === runtime.id;
+  // web pages cannot forge that. Only reject when the tab is NOT an extension tab.
   const guard = self.LeadLensMessageGuard
-  const verdict = guard ? guard.validateTopLevel(message, sender) : { ok: !!(sender && sender.id === chrome.runtime.id && !sender.tab) }
+  const verdict = guard ? guard.validateTopLevel(message, sender) : { ok: !!(sender && sender.id === chrome.runtime.id) }
   if (!verdict.ok) {
     sendResponse({ ok: false, status: 0, data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' } })
     return false
   }
-  if (sender && sender.tab) {
+  if (sender && sender.tab && sender.url && !sender.url.startsWith(chrome.runtime.getURL(''))) {
     sendResponse({ ok: false, status: 0, data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' } })
     return false
   }
