@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { corsFactory, corsHeaders, jsonResponse, preflight, bodyTooLarge } from "./-cors";
 import { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } from "./-rate-limit";
+import { signPayload } from "./-signing";
 
 // Whitelisted keys returned to the extension. Never expose secrets or admin-only keys.
 const PUBLIC_KEYS = [
