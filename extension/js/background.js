@@ -8,6 +8,7 @@
 // './name.js' — using 'js/...' would resolve to js/js/... and 404.
 try {
   importScripts(
+    './message-guard.js',
     './apikey-gate.js',
     './scan-context.js',
     './scan-queue.js',
