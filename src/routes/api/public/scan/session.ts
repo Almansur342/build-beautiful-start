@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
+import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
 
 const schema = z.object({
   api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format"),
@@ -21,59 +23,53 @@ function randomToken(bytes = 32): string {
   return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function corsHeaders(origin: string | null) {
-  return {
-    "Access-Control-Allow-Origin": origin ?? "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "86400",
-  };
-}
-
-function json(body: unknown, init: ResponseInit & { origin?: string | null } = {}) {
-  const { origin, ...rest } = init;
-  return new Response(JSON.stringify(body), {
-    ...rest,
-    headers: { "Content-Type": "application/json", ...corsHeaders(origin ?? null), ...(rest.headers || {}) },
-  });
-}
+const METHODS = "POST, OPTIONS" as const;
 
 export const Route = createFileRoute("/api/public/scan/session")({
   server: {
     handlers: {
-      OPTIONS: async ({ request }) => new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
+      OPTIONS: async ({ request }) => preflight(request.headers.get("origin"), METHODS),
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
-        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("../-rate-limit");
+        if (bodyTooLarge(request)) return jsonResponse({ ok: false, reason: "payload_too_large", message: "Request too large." }, { status: 413, origin });
         const ip = clientIp(request);
-        const rl = await checkRateLimit(`session:${ip}`, RATE_LIMIT_PRESETS.session.max, RATE_LIMIT_PRESETS.session.windowSeconds);
-        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsHeaders);
+
         let raw: unknown;
-        try { raw = await request.json(); } catch { return json({ ok: false, reason: "bad_request", message: "Invalid request body." }, { status: 400, origin }); }
+        try { raw = await request.json(); } catch { return jsonResponse({ ok: false, reason: "bad_request", message: "Invalid request body." }, { status: 400, origin }); }
         const parsed = schema.safeParse(raw);
-        if (!parsed.success) return json({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid session request." }, { status: 400, origin });
+        if (!parsed.success) return jsonResponse({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid session request." }, { status: 400, origin });
         const { api_key: apiKey, device_fingerprint: device, user_agent } = parsed.data;
+
+        // Multi-dimensional rate-limit: IP + device + api-key-prefix.
+        // Fail-closed on infra failure — session creation is a sensitive mutation.
+        const keyPrefix = apiKey.slice(0, 12).toLowerCase();
+        const deviceKey = await deviceBucketId(device);
+        const rl = await checkComposite([
+          { key: `session:ip:${ip}`, max: RATE_LIMIT_PRESETS.session.max, windowSeconds: RATE_LIMIT_PRESETS.session.windowSeconds },
+          { key: `session:dev:${deviceKey}`, max: 10, windowSeconds: 60 },
+          { key: `session:key:${keyPrefix}`, max: 20, windowSeconds: 60 },
+        ], { failClosed: true });
+        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsFactory(METHODS), METHODS);
 
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
         const keyHash = await sha256Hex(apiKey);
 
         const { data: keyRow, error: keyError } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("key_hash", keyHash).maybeSingle();
-        if (keyError) return json({ ok: false, reason: "service_error", message: "Session service is temporarily unavailable." }, { status: 503, origin });
-        if (!keyRow) return json({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
-        if (keyRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
+        if (keyError) return jsonResponse({ ok: false, reason: "service_error", message: "Session service is temporarily unavailable." }, { status: 503, origin });
+        if (!keyRow) return jsonResponse({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
+        if (keyRow.revoked_at) return jsonResponse({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
 
         const { data: profile } = await admin.from("profiles").select("banned").eq("id", keyRow.user_id).maybeSingle();
-        if (profile?.banned) return json({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
+        if (profile?.banned) return jsonResponse({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
 
-        // Bind device if unbound; reject mismatch.
         if (!keyRow.device_fingerprint) {
           const { error: bindError } = await admin.from("api_keys").update({ device_fingerprint: device, bound_at: new Date().toISOString() }).eq("id", keyRow.id);
-          if (bindError) return json({ ok: false, reason: "service_error", message: "Could not bind this device. Please try again." }, { status: 503, origin });
+          if (bindError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not bind this device. Please try again." }, { status: 503, origin });
         } else if (keyRow.device_fingerprint !== device) {
-          return json({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
+          return jsonResponse({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
 
-        // Revoke any prior active sessions for this key + device (one active session per device).
+        // Revoke prior active sessions for this key + device.
         await admin.from("extension_sessions").update({ revoked_at: new Date().toISOString() }).eq("api_key_id", keyRow.id).is("revoked_at", null);
 
         const sessionToken = "qls_" + randomToken(32);
@@ -92,9 +88,9 @@ export const Route = createFileRoute("/api/public/scan/session")({
           refresh_expires_at: refreshExpiresAt.toISOString(),
           user_agent: user_agent ?? null,
         });
-        if (insertError) return json({ ok: false, reason: "service_error", message: "Could not start session. Please try again." }, { status: 503, origin });
+        if (insertError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not start session. Please try again." }, { status: 503, origin });
 
-        return json({
+        return jsonResponse({
           ok: true,
           session_token: sessionToken,
           refresh_token: refreshToken,
