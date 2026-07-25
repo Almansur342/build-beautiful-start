@@ -662,3 +662,93 @@ function NoticeEditor({ initial, onSave }: { initial: string; onSave: (v: string
     </div>
   );
 }
+
+function SecurityLogTab() {
+  const fetchEvents = useServerFn(adminListSecurityEvents);
+  const [page, setPage] = useState(0);
+  const [severity, setSeverity] = useState<"all" | "info" | "warn" | "critical">("all");
+  const [eventType, setEventType] = useState<string>("");
+  const q = useQuery({
+    queryKey: ["admin-security-events", page, severity, eventType],
+    queryFn: () => fetchEvents({ data: { page, page_size: 50, severity, event_type: eventType || undefined } }),
+  });
+  const rows = q.data?.rows ?? [];
+  const total = q.data?.total ?? 0;
+  const pageSize = q.data?.pageSize ?? 50;
+  const maxPage = Math.max(0, Math.ceil(total / pageSize) - 1);
+
+  const sevColor = (s: string) =>
+    s === "critical" ? "bg-red-100 text-red-700 border-red-200"
+    : s === "warn" ? "bg-amber-100 text-amber-800 border-amber-200"
+    : "bg-neutral-100 text-neutral-700 border-neutral-200";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">Severity</span>
+          {(["all", "info", "warn", "critical"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => { setSeverity(s); setPage(0); }}
+              className={`px-3 py-1 text-xs border ${severity === s ? "bg-[#0b1220] text-white border-[#0b1220]" : "bg-white border-neutral-300 hover:border-neutral-400"}`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <Input
+          value={eventType}
+          onChange={(e) => { setEventType(e.target.value); setPage(0); }}
+          placeholder="Filter by event_type (e.g. session.device_mismatch)"
+          className="max-w-md"
+        />
+        <Button size="sm" variant="outline" onClick={() => q.refetch()}>Refresh</Button>
+        <div className="ml-auto text-xs text-muted-foreground">Total: {total.toLocaleString()}</div>
+      </div>
+
+      <div className="border border-neutral-200 bg-white overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
+            <tr>
+              <th className="px-3 py-2 text-left">Time (UTC)</th>
+              <th className="px-3 py-2 text-left">Severity</th>
+              <th className="px-3 py-2 text-left">Event</th>
+              <th className="px-3 py-2 text-left">User</th>
+              <th className="px-3 py-2 text-left">IP hash</th>
+              <th className="px-3 py-2 text-left">Device hash</th>
+              <th className="px-3 py-2 text-left">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {q.isLoading && (
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+            )}
+            {!q.isLoading && rows.length === 0 && (
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">No events match the filter.</td></tr>
+            )}
+            {rows.map((r: any) => (
+              <tr key={r.id} className="border-t border-neutral-100 align-top">
+                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{new Date(r.created_at).toISOString().replace("T", " ").slice(0, 19)}</td>
+                <td className="px-3 py-2"><span className={`px-2 py-0.5 text-[11px] border ${sevColor(r.severity)}`}>{r.severity}</span></td>
+                <td className="px-3 py-2 font-mono text-xs">{r.event_type}</td>
+                <td className="px-3 py-2 font-mono text-[11px]">{r.user_id ? r.user_id.slice(0, 8) : "—"}</td>
+                <td className="px-3 py-2 font-mono text-[11px]">{r.ip_hash ? r.ip_hash.slice(0, 12) : "—"}</td>
+                <td className="px-3 py-2 font-mono text-[11px]">{r.device_hash ? r.device_hash.slice(0, 12) : "—"}</td>
+                <td className="px-3 py-2 text-xs">{r.reason ?? (r.metadata ? JSON.stringify(r.metadata) : "—")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between text-sm">
+        <div className="text-muted-foreground">Page {page + 1} / {maxPage + 1}</div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</Button>
+          <Button size="sm" variant="outline" disabled={page >= maxPage} onClick={() => setPage((p) => Math.min(maxPage, p + 1))}>Next</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
