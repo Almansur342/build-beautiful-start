@@ -44,9 +44,16 @@ export const adminListFeedback = createServerFn({ method: 'GET' })
     if (!isAdmin) throw new Error('Forbidden');
     const { data, error } = await supabase
       .from('feedback')
-      .select('*, profiles(email, full_name, avatar_url)')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = data ?? [];
+    const userIds = Array.from(new Set(rows.map((r: any) => r.user_id).filter(Boolean)));
+    let profilesById: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, email, full_name, avatar_url').in('id', userIds);
+      profilesById = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p]));
+    }
+    return rows.map((r: any) => ({ ...r, profiles: profilesById[r.user_id] ?? null }));
   });
