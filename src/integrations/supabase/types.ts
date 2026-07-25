@@ -96,9 +96,12 @@ export type Database = {
           device_fingerprint: string
           id: string
           last_used_at: string
+          previous_refresh_token_hash: string | null
           refresh_expires_at: string
           refresh_token_hash: string
+          reuse_detected_at: string | null
           revoked_at: string | null
+          rotation_count: number
           session_expires_at: string
           session_token_hash: string
           user_agent: string | null
@@ -110,9 +113,12 @@ export type Database = {
           device_fingerprint: string
           id?: string
           last_used_at?: string
+          previous_refresh_token_hash?: string | null
           refresh_expires_at: string
           refresh_token_hash: string
+          reuse_detected_at?: string | null
           revoked_at?: string | null
+          rotation_count?: number
           session_expires_at: string
           session_token_hash: string
           user_agent?: string | null
@@ -124,9 +130,12 @@ export type Database = {
           device_fingerprint?: string
           id?: string
           last_used_at?: string
+          previous_refresh_token_hash?: string | null
           refresh_expires_at?: string
           refresh_token_hash?: string
+          reuse_detected_at?: string | null
           revoked_at?: string | null
+          rotation_count?: number
           session_expires_at?: string
           session_token_hash?: string
           user_agent?: string | null
