@@ -68,6 +68,59 @@ export type Database = {
         }
         Relationships: []
       }
+      extension_sessions: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          device_fingerprint: string
+          id: string
+          last_used_at: string
+          refresh_expires_at: string
+          refresh_token_hash: string
+          revoked_at: string | null
+          session_expires_at: string
+          session_token_hash: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          device_fingerprint: string
+          id?: string
+          last_used_at?: string
+          refresh_expires_at: string
+          refresh_token_hash: string
+          revoked_at?: string | null
+          session_expires_at: string
+          session_token_hash: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          device_fingerprint?: string
+          id?: string
+          last_used_at?: string
+          refresh_expires_at?: string
+          refresh_token_hash?: string
+          revoked_at?: string | null
+          session_expires_at?: string
+          session_token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extension_sessions_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback: {
         Row: {
           category: string | null
