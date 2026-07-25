@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   adminGetOverview, adminUpdatePlan, adminUpdateSetting, adminRevokeUserKey,
-  adminResetUserDevice, adminToggleBan, adminAssignPlan,
+  adminResetUserDevice, adminToggleBan, adminAssignPlan, adminListUserScans,
 } from "@/lib/admin.functions";
 import { adminListRefunds, adminUpdateRefund } from "@/lib/billing.functions";
 import { adminListAllTickets, listTicketMessages, replyTicket, setTicketStatus } from "@/lib/tickets.functions";
