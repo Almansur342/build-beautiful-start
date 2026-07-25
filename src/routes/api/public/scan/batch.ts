@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-
-// Batch authorization endpoint — up to N scans in one round-trip.
-// Session-token only (no raw API key). Each event is quota-consumed atomically
-// via the same consume_scan_quota RPC used by the single-scan authorize path.
+import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
+import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
 
 const eventSchema = z.object({
   website_url: z.string().trim().min(1).max(500),
@@ -22,78 +20,72 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function corsHeaders(origin: string | null) {
-  return {
-    "Access-Control-Allow-Origin": origin ?? "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "86400",
-  };
-}
-
-function json(body: unknown, init: ResponseInit & { origin?: string | null } = {}) {
-  const { origin, ...rest } = init;
-  return new Response(JSON.stringify(body), {
-    ...rest,
-    headers: { "Content-Type": "application/json", ...corsHeaders(origin ?? null), ...(rest.headers || {}) },
-  });
-}
+const METHODS = "POST, OPTIONS" as const;
 
 export const Route = createFileRoute("/api/public/scan/batch")({
   server: {
     handlers: {
-      OPTIONS: async ({ request }) => new Response(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) }),
+      OPTIONS: async ({ request }) => preflight(request.headers.get("origin"), METHODS),
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
-        const { checkRateLimit, clientIp, rateLimitResponse, RATE_LIMIT_PRESETS } = await import("../-rate-limit");
+        if (bodyTooLarge(request)) return jsonResponse({ ok: false, reason: "payload_too_large", message: "Request too large." }, { status: 413, origin });
         const ip = clientIp(request);
-        const rl = await checkRateLimit(`batch:${ip}`, RATE_LIMIT_PRESETS.batch.max, RATE_LIMIT_PRESETS.batch.windowSeconds);
-        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsHeaders);
+
         let rawBody: unknown;
         try {
           rawBody = await request.json();
         } catch {
-          return json({ ok: false, reason: "bad_request", message: "Invalid request body." }, { status: 400, origin });
+          return jsonResponse({ ok: false, reason: "bad_request", message: "Invalid request body." }, { status: 400, origin });
         }
         const parsed = batchSchema.safeParse(rawBody);
         if (!parsed.success) {
-          return json({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid batch." }, { status: 400, origin });
+          return jsonResponse({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid batch." }, { status: 400, origin });
         }
         const { session_token: sessionToken, device_fingerprint: device, events } = parsed.data;
 
+        const deviceKey = await deviceBucketId(device);
+        const rlPre = await checkComposite([
+          { key: `batch:ip:${ip}`, max: RATE_LIMIT_PRESETS.batch.max, windowSeconds: RATE_LIMIT_PRESETS.batch.windowSeconds },
+          { key: `batch:dev:${deviceKey}`, max: 20, windowSeconds: 60 },
+        ], { failClosed: true });
+        if (!rlPre.allowed) return rateLimitResponse(rlPre.retryAfter, origin, corsFactory(METHODS), METHODS);
+
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
-        // Remote-config kill-switch and effective batch cap.
         const { data: settings } = await admin.from("app_settings").select("key, value");
         const map: Record<string, any> = {};
         for (const s of settings ?? []) map[s.key] = s.value;
         if (map.scan_disabled === true) {
-          return json({ ok: false, reason: "scan_disabled", message: "Scanning is temporarily paused. Please try again shortly." }, { status: 503, origin });
+          return jsonResponse({ ok: false, reason: "scan_disabled", message: "Scanning is temporarily paused. Please try again shortly." }, { status: 503, origin });
         }
         const batchCap = Math.max(1, Number(map.batch_max_events ?? 25));
         const capped = events.slice(0, batchCap);
 
-        // Verify session
         const sessionHash = await sha256Hex(sessionToken);
         const { data: sessionRow, error: sessionError } = await admin
           .from("extension_sessions")
           .select("id, api_key_id, user_id, device_fingerprint, session_expires_at, revoked_at")
           .eq("session_token_hash", sessionHash)
           .maybeSingle();
-        if (sessionError) return json({ ok: false, reason: "service_error", message: "Session verification is temporarily unavailable." }, { status: 503, origin });
-        if (!sessionRow) return json({ ok: false, reason: "session_invalid", message: "Session invalid. Refresh your session." }, { status: 401, origin });
-        if (sessionRow.revoked_at) return json({ ok: false, reason: "session_revoked", message: "Session revoked. Please re-activate." }, { status: 401, origin });
-        if (new Date(sessionRow.session_expires_at) <= new Date()) return json({ ok: false, reason: "session_expired", message: "Session expired. Refresh your session." }, { status: 401, origin });
-        if (sessionRow.device_fingerprint !== device) return json({ ok: false, reason: "device_mismatch", message: "Session is bound to a different device." }, { status: 403, origin });
+        if (sessionError) return jsonResponse({ ok: false, reason: "service_error", message: "Session verification is temporarily unavailable." }, { status: 503, origin });
+        if (!sessionRow) return jsonResponse({ ok: false, reason: "session_invalid", message: "Session invalid. Refresh your session." }, { status: 401, origin });
+        if (sessionRow.revoked_at) return jsonResponse({ ok: false, reason: "session_revoked", message: "Session revoked. Please re-activate." }, { status: 401, origin });
+        if (new Date(sessionRow.session_expires_at) <= new Date()) return jsonResponse({ ok: false, reason: "session_expired", message: "Session expired. Refresh your session." }, { status: 401, origin });
+        if (sessionRow.device_fingerprint !== device) return jsonResponse({ ok: false, reason: "device_mismatch", message: "Session is bound to a different device." }, { status: 403, origin });
 
         const { data: kRow, error: kErr } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("id", sessionRow.api_key_id).maybeSingle();
-        if (kErr) return json({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable." }, { status: 503, origin });
-        if (!kRow || kRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked." }, { status: 401, origin });
+        if (kErr) return jsonResponse({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable." }, { status: 503, origin });
+        if (!kRow || kRow.revoked_at) return jsonResponse({ ok: false, reason: "revoked", message: "This API key has been revoked." }, { status: 401, origin });
+
+        // Per-user dimension (post-auth).
+        const rlUser = await checkComposite([
+          { key: `batch:user:${kRow.user_id}`, max: 60, windowSeconds: 60 },
+        ], { failClosed: true });
+        if (!rlUser.allowed) return rateLimitResponse(rlUser.retryAfter, origin, corsFactory(METHODS), METHODS);
 
         const { data: profile } = await admin.from("profiles").select("banned").eq("id", kRow.user_id).maybeSingle();
-        if (profile?.banned) return json({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
+        if (profile?.banned) return jsonResponse({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
 
-        // Resolve plan + effective limit (single lookup for the whole batch)
         const { data: sub } = await admin
           .from("subscriptions")
           .select("status, current_period_end, plans(slug, name, daily_scan_limit)")
@@ -113,12 +105,11 @@ export const Route = createFileRoute("/api/public/scan/batch")({
           limit = plan.daily_scan_limit;
           planLabel = plan.name;
         } else {
-          if (!freeEnabled) return json({ ok: false, reason: "no_plan", message: "Free tier is disabled. Please upgrade in your dashboard." }, { status: 402, origin });
+          if (!freeEnabled) return jsonResponse({ ok: false, reason: "no_plan", message: "Free tier is disabled. Please upgrade in your dashboard." }, { status: 402, origin });
           limit = freeLimit;
           planLabel = "Free";
         }
 
-        // Process each event through the atomic RPC
         const results: Array<{ event_id?: string; ok: boolean; reason?: string; message?: string; remaining?: number | null; duplicate?: boolean }> = [];
         let lastRemaining: number | null = null;
         for (const ev of capped) {
@@ -137,7 +128,6 @@ export const Route = createFileRoute("/api/public/scan/batch")({
             continue;
           }
           lastRemaining = row.remaining ?? lastRemaining;
-          // Historical scan_logs (dedup 60s window). Idempotent duplicates skipped.
           if (!row.duplicate) {
             const sixtySecondsAgo = new Date(Date.now() - 60_000).toISOString();
             const { data: recent } = await admin
@@ -158,7 +148,7 @@ export const Route = createFileRoute("/api/public/scan/batch")({
         await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", kRow.id);
         await admin.from("extension_sessions").update({ last_used_at: new Date().toISOString() }).eq("id", sessionRow.id);
 
-        return json({ ok: true, plan: planLabel, limit, remaining: lastRemaining, results, dropped: Math.max(0, events.length - capped.length) }, { origin });
+        return jsonResponse({ ok: true, plan: planLabel, limit, remaining: lastRemaining, results, dropped: Math.max(0, events.length - capped.length) }, { origin });
       },
     },
   },
