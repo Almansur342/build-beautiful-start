@@ -22,6 +22,32 @@ try {
   console.error('[LeadLens] importScripts failed:', e)
 }
 
+// Extension pages send activation checks through the service worker. This is
+// more reliable than a direct cross-origin request from an extension document
+// and uses the host permissions declared in manifest.json.
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!message || message.type !== 'qrinuxValidateKey') return false
+
+  if (!self.LeadLensGate || typeof self.LeadLensGate.requestAuthorization !== 'function') {
+    sendResponse({
+      ok: false,
+      status: 0,
+      data: { reason: 'extension_error', message: 'The extension service is not ready. Reload the extension and try again.' },
+    })
+    return false
+  }
+
+  self.LeadLensGate.requestAuthorization(message.payload || {})
+    .then(sendResponse)
+    .catch(() => sendResponse({
+      ok: false,
+      status: 0,
+      data: { reason: 'extension_error', message: 'The extension could not complete verification. Reload it and try again.' },
+    }))
+
+  return true
+})
+
 chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === 'install') {
     chrome.tabs.create({

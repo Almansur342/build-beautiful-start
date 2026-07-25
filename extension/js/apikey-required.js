@@ -4,8 +4,7 @@
 // Validates the pasted key against the SaaS backend before unlocking.
 
 ;(function () {
-  const API_BASE = 'https://build-beautiful-start.lovable.app'
-  const DASHBOARD_URL = API_BASE + '/dashboard'
+  const DASHBOARD_URL = 'https://build-beautiful-start.lovable.app/dashboard'
 
   function getKey() {
     return new Promise((resolve) => {
@@ -95,35 +94,56 @@
 
   async function validateKey(key) {
     const fp = await getOrMakeFp()
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const res = await fetch(API_BASE + '/api/public/scan/authorize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: key, device_fingerprint: fp, website_url: '' }),
-        signal: controller.signal,
+      const result = await new Promise((resolve) => {
+        let settled = false
+        const timer = setTimeout(() => {
+          if (settled) return
+          settled = true
+          resolve({
+            ok: false,
+            status: 0,
+            data: { reason: 'timeout', message: 'The Qrinux server took too long to respond. Please try again.' },
+          })
+        }, 32000)
+
+        chrome.runtime.sendMessage({
+          type: 'qrinuxValidateKey',
+          payload: { api_key: key, device_fingerprint: fp, website_url: '' },
+        }, (response) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timer)
+
+          if (chrome.runtime.lastError) {
+            resolve({
+              ok: false,
+              status: 0,
+              data: { reason: 'extension_error', message: 'The extension service stopped responding. Reload the extension and try again.' },
+            })
+            return
+          }
+          resolve(response || {
+            ok: false,
+            status: 0,
+            data: { reason: 'empty_response', message: 'No response was received. Reload the extension and try again.' },
+          })
+        })
       })
-      const responseText = await res.text()
-      let data = {}
-      try { data = responseText ? JSON.parse(responseText) : {} } catch (_) {}
-      if (res.ok && data.ok) return { ok: true, data }
+
+      const data = result.data || {}
+      if (result.ok && data.ok) return { ok: true, data }
       return {
         ok: false,
         reason: data.reason || 'denied',
-        message: data.message || `Activation failed (server response ${res.status}). Please try again.`,
+        message: data.message || `Activation failed${result.status ? ` (server response ${result.status})` : ''}. Please try again.`,
       }
-    } catch (e) {
-      const timedOut = e && e.name === 'AbortError'
+    } catch (_) {
       return {
         ok: false,
-        reason: timedOut ? 'timeout' : 'network_error',
-        message: timedOut
-          ? 'Verification timed out. Check your internet connection and try again.'
-          : 'Could not reach the Qrinux server. Check your internet connection and try again.',
+        reason: 'extension_error',
+        message: 'The extension could not start verification. Reload the extension and try again.',
       }
-    } finally {
-      clearTimeout(timeout)
     }
   }
 
