@@ -34,6 +34,7 @@ import { Route as AuthenticatedApiKeyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicConfigRouteImport } from './routes/api/public/config'
 import { Route as ApiPublicScanSessionRouteImport } from './routes/api/public/scan/session'
+import { Route as ApiPublicScanFetchRouteImport } from './routes/api/public/scan/fetch'
 import { Route as ApiPublicScanBatchRouteImport } from './routes/api/public/scan/batch'
 import { Route as ApiPublicScanAuthorizeRouteImport } from './routes/api/public/scan/authorize'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -163,6 +164,11 @@ const ApiPublicScanSessionRoute = ApiPublicScanSessionRouteImport.update({
   path: '/api/public/scan/session',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicScanFetchRoute = ApiPublicScanFetchRouteImport.update({
+  id: '/api/public/scan/fetch',
+  path: '/api/public/scan/fetch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScanBatchRoute = ApiPublicScanBatchRouteImport.update({
   id: '/api/public/scan/batch',
   path: '/api/public/scan/batch',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
   '/api/public/scan/batch': typeof ApiPublicScanBatchRoute
+  '/api/public/scan/fetch': typeof ApiPublicScanFetchRoute
   '/api/public/scan/session': typeof ApiPublicScanSessionRouteWithChildren
   '/api/public/scan/session/refresh': typeof ApiPublicScanSessionRefreshRoute
 }
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
   '/api/public/scan/batch': typeof ApiPublicScanBatchRoute
+  '/api/public/scan/fetch': typeof ApiPublicScanFetchRoute
   '/api/public/scan/session': typeof ApiPublicScanSessionRouteWithChildren
   '/api/public/scan/session/refresh': typeof ApiPublicScanSessionRefreshRoute
 }
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
   '/api/public/scan/batch': typeof ApiPublicScanBatchRoute
+  '/api/public/scan/fetch': typeof ApiPublicScanFetchRoute
   '/api/public/scan/session': typeof ApiPublicScanSessionRouteWithChildren
   '/api/public/scan/session/refresh': typeof ApiPublicScanSessionRefreshRoute
 }
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/batch'
+    | '/api/public/scan/fetch'
     | '/api/public/scan/session'
     | '/api/public/scan/session/refresh'
   fileRoutesByTo: FileRoutesByTo
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/batch'
+    | '/api/public/scan/fetch'
     | '/api/public/scan/session'
     | '/api/public/scan/session/refresh'
   id:
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/batch'
+    | '/api/public/scan/fetch'
     | '/api/public/scan/session'
     | '/api/public/scan/session/refresh'
   fileRoutesById: FileRoutesById
@@ -387,6 +399,7 @@ export interface RootRouteChildren {
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicScanAuthorizeRoute: typeof ApiPublicScanAuthorizeRoute
   ApiPublicScanBatchRoute: typeof ApiPublicScanBatchRoute
+  ApiPublicScanFetchRoute: typeof ApiPublicScanFetchRoute
   ApiPublicScanSessionRoute: typeof ApiPublicScanSessionRouteWithChildren
 }
 
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicScanSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/scan/fetch': {
+      id: '/api/public/scan/fetch'
+      path: '/api/public/scan/fetch'
+      fullPath: '/api/public/scan/fetch'
+      preLoaderRoute: typeof ApiPublicScanFetchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/scan/batch': {
       id: '/api/public/scan/batch'
       path: '/api/public/scan/batch'
@@ -675,6 +695,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicScanAuthorizeRoute: ApiPublicScanAuthorizeRoute,
   ApiPublicScanBatchRoute: ApiPublicScanBatchRoute,
+  ApiPublicScanFetchRoute: ApiPublicScanFetchRoute,
   ApiPublicScanSessionRoute: ApiPublicScanSessionRouteWithChildren,
 }
 export const routeTree = rootRouteImport
