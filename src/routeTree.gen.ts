@@ -9,70 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LegalRouteImport } from './routes/legal'
-import { Route as DocsRouteImport } from './routes/docs'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as ChangelogRouteImport } from './routes/changelog'
-import { Route as CareersRouteImport } from './routes/careers'
-import { Route as BlogRouteImport } from './routes/blog'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as LegalTermsRouteImport } from './routes/legal.terms'
-import { Route as LegalRefundRouteImport } from './routes/legal.refund'
-import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
-import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
-import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
-import { Route as AuthenticatedApiKeyRouteImport } from './routes/_authenticated/api-key'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as CareersRouteImport } from './routes/careers'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedApiKeyRouteImport } from './routes/_authenticated/api-key'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
+import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalRefundRouteImport } from './routes/legal.refund'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as ApiPublicConfigRouteImport } from './routes/api/public/config'
-import { Route as ApiPublicScanSessionRouteImport } from './routes/api/public/scan/session'
-import { Route as ApiPublicScanFetchRouteImport } from './routes/api/public/scan/fetch'
-import { Route as ApiPublicScanBatchRouteImport } from './routes/api/public/scan/batch'
-import { Route as ApiPublicScanAuthorizeRouteImport } from './routes/api/public/scan/authorize'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicScanAuthorizeRouteImport } from './routes/api/public/scan/authorize'
+import { Route as ApiPublicScanBatchRouteImport } from './routes/api/public/scan/batch'
+import { Route as ApiPublicScanFetchRouteImport } from './routes/api/public/scan/fetch'
+import { Route as ApiPublicScanSessionRouteImport } from './routes/api/public/scan/session'
 import { Route as ApiPublicScanSessionRefreshRouteImport } from './routes/api/public/scan/session.refresh'
 
-const LegalRoute = LegalRouteImport.update({
-  id: '/legal',
-  path: '/legal',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsRoute = DocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChangelogRoute = ChangelogRouteImport.update({
-  id: '/changelog',
-  path: '/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CareersRoute = CareersRouteImport.update({
-  id: '/careers',
-  path: '/careers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -80,68 +54,44 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LegalTermsRoute = LegalTermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => LegalRoute,
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const LegalRefundRoute = LegalRefundRouteImport.update({
-  id: '/refund',
-  path: '/refund',
-  getParentRoute: () => LegalRoute,
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => LegalRoute,
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const LegalCookiesRoute = LegalCookiesRouteImport.update({
-  id: '/cookies',
-  path: '/cookies',
-  getParentRoute: () => LegalRoute,
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BlogRoute,
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
-  id: '/feedback',
-  path: '/feedback',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDevicesRoute = AuthenticatedDevicesRouteImport.update({
-  id: '/devices',
-  path: '/devices',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedApiKeyRoute = AuthenticatedApiKeyRouteImport.update({
@@ -149,34 +99,64 @@ const AuthenticatedApiKeyRoute = AuthenticatedApiKeyRouteImport.update({
   path: '/api-key',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDevicesRoute = AuthenticatedDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
+const LegalCookiesRoute = LegalCookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalRefundRoute = LegalRefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => LegalRoute,
 } as any)
 const ApiPublicConfigRoute = ApiPublicConfigRouteImport.update({
   id: '/api/public/config',
   path: '/api/public/config',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicScanSessionRoute = ApiPublicScanSessionRouteImport.update({
-  id: '/api/public/scan/session',
-  path: '/api/public/scan/session',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicScanFetchRoute = ApiPublicScanFetchRouteImport.update({
-  id: '/api/public/scan/fetch',
-  path: '/api/public/scan/fetch',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicScanBatchRoute = ApiPublicScanBatchRouteImport.update({
-  id: '/api/public/scan/batch',
-  path: '/api/public/scan/batch',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicScanAuthorizeRoute = ApiPublicScanAuthorizeRouteImport.update({
-  id: '/api/public/scan/authorize',
-  path: '/api/public/scan/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
@@ -185,6 +165,26 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicScanAuthorizeRoute = ApiPublicScanAuthorizeRouteImport.update({
+  id: '/api/public/scan/authorize',
+  path: '/api/public/scan/authorize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicScanBatchRoute = ApiPublicScanBatchRouteImport.update({
+  id: '/api/public/scan/batch',
+  path: '/api/public/scan/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicScanFetchRoute = ApiPublicScanFetchRouteImport.update({
+  id: '/api/public/scan/fetch',
+  path: '/api/public/scan/fetch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicScanSessionRoute = ApiPublicScanSessionRouteImport.update({
+  id: '/api/public/scan/session',
+  path: '/api/public/scan/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScanSessionRefreshRoute =
   ApiPublicScanSessionRefreshRouteImport.update({
     id: '/refresh',
@@ -405,60 +405,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/legal': {
-      id: '/legal'
-      path: '/legal'
-      fullPath: '/legal'
-      preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/changelog': {
-      id: '/changelog'
-      path: '/changelog'
-      fullPath: '/changelog'
-      preLoaderRoute: typeof ChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/careers': {
-      id: '/careers'
-      path: '/careers'
-      fullPath: '/careers'
-      preLoaderRoute: typeof CareersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -468,88 +419,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/legal/terms': {
-      id: '/legal/terms'
-      path: '/terms'
-      fullPath: '/legal/terms'
-      preLoaderRoute: typeof LegalTermsRouteImport
-      parentRoute: typeof LegalRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/legal/refund': {
-      id: '/legal/refund'
-      path: '/refund'
-      fullPath: '/legal/refund'
-      preLoaderRoute: typeof LegalRefundRouteImport
-      parentRoute: typeof LegalRoute
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/legal/privacy': {
-      id: '/legal/privacy'
-      path: '/privacy'
-      fullPath: '/legal/privacy'
-      preLoaderRoute: typeof LegalPrivacyRouteImport
-      parentRoute: typeof LegalRoute
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/legal/cookies': {
-      id: '/legal/cookies'
-      path: '/cookies'
-      fullPath: '/legal/cookies'
-      preLoaderRoute: typeof LegalCookiesRouteImport
-      parentRoute: typeof LegalRoute
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof BlogRoute
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/support': {
-      id: '/_authenticated/support'
-      path: '/support'
-      fullPath: '/support'
-      preLoaderRoute: typeof AuthenticatedSupportRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/feedback': {
-      id: '/_authenticated/feedback'
-      path: '/feedback'
-      fullPath: '/feedback'
-      preLoaderRoute: typeof AuthenticatedFeedbackRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/devices': {
-      id: '/_authenticated/devices'
-      path: '/devices'
-      fullPath: '/devices'
-      preLoaderRoute: typeof AuthenticatedDevicesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/billing': {
-      id: '/_authenticated/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof AuthenticatedBillingRouteImport
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/api-key': {
@@ -559,12 +489,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedApiKeyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/devices': {
+      id: '/_authenticated/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AuthenticatedDevicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/feedback': {
+      id: '/_authenticated/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof AuthenticatedFeedbackRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/legal/cookies': {
+      id: '/legal/cookies'
+      path: '/cookies'
+      fullPath: '/legal/cookies'
+      preLoaderRoute: typeof LegalCookiesRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/refund': {
+      id: '/legal/refund'
+      path: '/refund'
+      fullPath: '/legal/refund'
+      preLoaderRoute: typeof LegalRefundRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof LegalRoute
     }
     '/api/public/config': {
       id: '/api/public/config'
@@ -573,25 +573,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/scan/session': {
-      id: '/api/public/scan/session'
-      path: '/api/public/scan/session'
-      fullPath: '/api/public/scan/session'
-      preLoaderRoute: typeof ApiPublicScanSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/scan/fetch': {
-      id: '/api/public/scan/fetch'
-      path: '/api/public/scan/fetch'
-      fullPath: '/api/public/scan/fetch'
-      preLoaderRoute: typeof ApiPublicScanFetchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/scan/batch': {
-      id: '/api/public/scan/batch'
-      path: '/api/public/scan/batch'
-      fullPath: '/api/public/scan/batch'
-      preLoaderRoute: typeof ApiPublicScanBatchRouteImport
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/scan/authorize': {
@@ -601,11 +587,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicScanAuthorizeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/payments/webhook': {
-      id: '/api/public/payments/webhook'
-      path: '/api/public/payments/webhook'
-      fullPath: '/api/public/payments/webhook'
-      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+    '/api/public/scan/batch': {
+      id: '/api/public/scan/batch'
+      path: '/api/public/scan/batch'
+      fullPath: '/api/public/scan/batch'
+      preLoaderRoute: typeof ApiPublicScanBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/scan/fetch': {
+      id: '/api/public/scan/fetch'
+      path: '/api/public/scan/fetch'
+      fullPath: '/api/public/scan/fetch'
+      preLoaderRoute: typeof ApiPublicScanFetchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/scan/session': {
+      id: '/api/public/scan/session'
+      path: '/api/public/scan/session'
+      fullPath: '/api/public/scan/session'
+      preLoaderRoute: typeof ApiPublicScanSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/scan/session/refresh': {
