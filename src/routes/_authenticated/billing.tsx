@@ -11,6 +11,8 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Receipt, FileDown, ExternalLink, Check, ChevronRight } from "lucide-react";
 
+const paymentsToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({ meta: [{ title: "Billing — Qrinux LeadLens" }] }),
   component: BillingPage,
@@ -46,6 +48,10 @@ function BillingPage() {
 
   const startUpgrade = async (lookupKey: string) => {
     setCheckoutErr(null);
+    if (!paymentsToken) {
+      setCheckoutErr("Payments are not configured for this build yet.");
+      return;
+    }
     const res = await startCheckout({
       data: {
         priceLookupKey: lookupKey,
@@ -67,6 +73,15 @@ function BillingPage() {
 
   return (
     <DashboardShell title="Billing" description="Manage your plan, view invoices, and request refunds.">
+      {!paymentsToken ? (
+        <div className="border border-destructive/30 bg-destructive/5 px-4 py-3 mb-6 text-sm text-destructive">
+          Production checkout is not configured yet.
+        </div>
+      ) : paymentsToken.startsWith("pk_test_") ? (
+        <div className="border border-amber-300 bg-amber-50 px-4 py-3 mb-6 text-sm text-amber-800">
+          Payments in this preview use test mode.
+        </div>
+      ) : null}
       {/* Current plan */}
       <section className="bg-background border border-border rounded-2xl p-6 mb-6">
         <div className="flex items-baseline justify-between flex-wrap gap-3">
@@ -122,7 +137,7 @@ function BillingPage() {
                     <Check className="h-3.5 w-3.5 text-emerald-600" /> Device-bound API key
                   </li>
                 </ul>
-                {!isCurrent && p.slug !== "free" && p.stripe_price_id && (
+                {!isCurrent && p.slug !== "free" && p.stripe_price_id && paymentsToken && (
                   <Button size="sm" className="w-full mt-5" onClick={() => startUpgrade(p.stripe_price_id)}>
                     Upgrade <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>

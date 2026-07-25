@@ -105,7 +105,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           .from("subscriptions")
           .select("status, current_period_end, plans(slug, name, daily_scan_limit)")
           .eq("user_id", keyRow.user_id)
-          .eq("status", "active")
+          .in("status", ["active", "trialing", "past_due"])
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();

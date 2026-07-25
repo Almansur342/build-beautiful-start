@@ -1,18 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
 import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
 
-function getAdmin() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-}
-
-async function upsertSubscription(sub: any) {
+async function upsertSubscription(sub: any, environment: StripeEnv) {
   const userId = sub.metadata?.userId;
   if (!userId) { console.error("No userId in subscription metadata"); return; }
   const item = sub.items?.data?.[0];
   const lookupKey = item?.price?.lookup_key;
   if (!lookupKey) { console.error("No lookup_key on price"); return; }
-  const admin = getAdmin();
+  const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
   const { data: plan } = await admin.from("plans").select("id, validity_days").eq("stripe_price_id", lookupKey).maybeSingle();
   if (!plan) { console.error("Plan not found for lookup_key", lookupKey); return; }
   const periodEnd = item?.current_period_end ?? sub.current_period_end;
@@ -39,10 +34,13 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           switch (event.type) {
             case "customer.subscription.created":
             case "customer.subscription.updated":
-              await upsertSubscription(event.data.object);
+              await upsertSubscription(event.data.object, env);
               break;
             case "customer.subscription.deleted":
-              await getAdmin().from("subscriptions").update({ status: "canceled" }).eq("stripe_subscription_id", event.data.object.id);
+              {
+                const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+                await supabaseAdmin.from("subscriptions").update({ status: "canceled" }).eq("stripe_subscription_id", event.data.object.id);
+              }
               break;
             default: break;
           }
