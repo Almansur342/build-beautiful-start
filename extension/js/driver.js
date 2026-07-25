@@ -2837,7 +2837,11 @@ const Driver = {
     }
 
     try {
-      chrome.runtime.sendMessage({ type: 'leadLensSystemReset' }, () => {
+      const guard = self.LeadLensMessageGuard
+      const resetMsg = guard
+        ? { type: 'leadLensSystemReset', nonce: guard.randomNonce(), ts: Date.now() }
+        : { type: 'leadLensSystemReset' }
+      chrome.runtime.sendMessage(resetMsg, () => {
         void chrome.runtime.lastError
       })
     } catch (error) {
