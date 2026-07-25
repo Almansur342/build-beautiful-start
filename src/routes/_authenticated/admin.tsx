@@ -56,6 +56,7 @@ function AdminPage() {
       {tab === "refunds" && <RefundsTab />}
       {tab === "support" && <AdminSupport />}
       {tab === "feedback" && <FeedbackTab />}
+      {tab === "security" && <SecurityLogTab />}
       {tab === "settings" && <SettingsTab />}
     </AdminShell>
   );
