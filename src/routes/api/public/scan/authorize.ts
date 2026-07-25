@@ -48,15 +48,41 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         if (!parsed.success) {
           return json({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid activation request." }, { status: 400, origin });
         }
-        const { api_key: apiKey, device_fingerprint: device, website_url: websiteUrl, event_id: eventId, scan_id: scanId } = parsed.data;
+        const { api_key: apiKey, session_token: sessionToken, device_fingerprint: device, website_url: websiteUrl, event_id: eventId, scan_id: scanId } = parsed.data;
+        if (!apiKey && !sessionToken) return json({ ok: false, reason: "bad_request", message: "Missing session_token or api_key." }, { status: 400, origin });
 
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
-        const keyHash = await sha256Hex(apiKey);
 
-        const { data: keyRow, error: keyError } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("key_hash", keyHash).maybeSingle();
-        if (keyError) return json({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable. Please try again." }, { status: 503, origin });
-        if (!keyRow) return json({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
-        if (keyRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
+        let keyRow: { id: string; user_id: string; device_fingerprint: string | null; revoked_at: string | null } | null = null;
+
+        if (sessionToken) {
+          const sessionHash = await sha256Hex(sessionToken);
+          const { data: sessionRow, error: sessionError } = await admin
+            .from("extension_sessions")
+            .select("id, api_key_id, user_id, device_fingerprint, session_expires_at, revoked_at")
+            .eq("session_token_hash", sessionHash)
+            .maybeSingle();
+          if (sessionError) return json({ ok: false, reason: "service_error", message: "Session verification is temporarily unavailable." }, { status: 503, origin });
+          if (!sessionRow) return json({ ok: false, reason: "session_invalid", message: "Session invalid. Refresh your session." }, { status: 401, origin });
+          if (sessionRow.revoked_at) return json({ ok: false, reason: "session_revoked", message: "Session revoked. Please re-activate." }, { status: 401, origin });
+          if (new Date(sessionRow.session_expires_at) <= new Date()) return json({ ok: false, reason: "session_expired", message: "Session expired. Refresh your session." }, { status: 401, origin });
+          if (sessionRow.device_fingerprint !== device) return json({ ok: false, reason: "device_mismatch", message: "Session is bound to a different device." }, { status: 403, origin });
+
+          const { data: kRow, error: kErr } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("id", sessionRow.api_key_id).maybeSingle();
+          if (kErr) return json({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable." }, { status: 503, origin });
+          if (!kRow || kRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked." }, { status: 401, origin });
+          keyRow = kRow;
+
+          // Bump last_used_at (best-effort)
+          await admin.from("extension_sessions").update({ last_used_at: new Date().toISOString() }).eq("id", sessionRow.id);
+        } else {
+          const keyHash = await sha256Hex(apiKey!);
+          const { data: kRow, error: keyError } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("key_hash", keyHash).maybeSingle();
+          if (keyError) return json({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable. Please try again." }, { status: 503, origin });
+          if (!kRow) return json({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
+          if (kRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
+          keyRow = kRow;
+        }
 
         const { data: profile } = await admin.from("profiles").select("banned").eq("id", keyRow.user_id).maybeSingle();
         if (profile?.banned) return json({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
