@@ -366,7 +366,9 @@ const Contacts = {
       ?.addEventListener('click', Contacts.stopBulkImport)
 
     chrome.runtime.onMessage.addListener((message, sender) => {
-      if (!message) return
+      if (!message || typeof message !== 'object') return
+      // Phase E: reject cross-origin senders even for broadcast messages.
+      if (!sender || sender.id !== chrome.runtime.id) return
 
       if (message.type === 'leadLensSystemReset') {
         Contacts.resetLocalUiState()

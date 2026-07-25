@@ -399,18 +399,15 @@ const Utils = {
 
   sendMessage(source, func, args) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        {
-          source,
-          func,
-          args: args ? (Array.isArray(args) ? args : [args]) : [],
-        },
-        (response) => {
-          chrome.runtime.lastError
-            ? reject(chrome.runtime.lastError)
-            : resolve(response)
-        }
-      )
+      const guard = (typeof self !== 'undefined' && self.LeadLensMessageGuard) || null
+      const envelope = guard
+        ? guard.envelope(source, func, args)
+        : { source, func, args: args ? (Array.isArray(args) ? args : [args]) : [] }
+      chrome.runtime.sendMessage(envelope, (response) => {
+        chrome.runtime.lastError
+          ? reject(chrome.runtime.lastError)
+          : resolve(response)
+      })
     })
   },
 

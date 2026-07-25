@@ -258,14 +258,15 @@ const Options = {
 
   driver(func, args) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        { source: 'options.js', func, args: args ? (Array.isArray(args) ? args : [args]) : [] },
-        (response) => {
-          chrome.runtime.lastError
-            ? reject(new Error(chrome.runtime.lastError.message))
-            : resolve(response)
-        }
-      )
+      const guard = (typeof self !== 'undefined' && self.LeadLensMessageGuard) || null
+      const envelope = guard
+        ? guard.envelope('options.js', func, args)
+        : { source: 'options.js', func, args: args ? (Array.isArray(args) ? args : [args]) : [] }
+      chrome.runtime.sendMessage(envelope, (response) => {
+        chrome.runtime.lastError
+          ? reject(new Error(chrome.runtime.lastError.message))
+          : resolve(response)
+      })
     })
   },
 }

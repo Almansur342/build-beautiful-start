@@ -107,10 +107,16 @@
           })
         }, 32000)
 
-        chrome.runtime.sendMessage({
+        const guard = (typeof self !== 'undefined' && self.LeadLensMessageGuard) || null
+        const validateMsg = {
           type: 'qrinuxValidateKey',
           payload: { api_key: key, device_fingerprint: fp, website_url: '' },
-        }, (response) => {
+        }
+        if (guard) {
+          validateMsg.nonce = guard.randomNonce()
+          validateMsg.ts = Date.now()
+        }
+        chrome.runtime.sendMessage(validateMsg, (response) => {
           if (settled) return
           settled = true
           clearTimeout(timer)
