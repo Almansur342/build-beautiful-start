@@ -144,3 +144,25 @@ export const adminListUserScans = createServerFn({ method: 'GET' })
       profile: profileRes.data,
     };
   });
+
+export const adminListSecurityEvents = createServerFn({ method: 'GET' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { page?: number; page_size?: number; severity?: 'info' | 'warn' | 'critical' | 'all'; event_type?: string; user_id?: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const page = Math.max(0, data.page ?? 0);
+    const size = Math.min(200, Math.max(10, data.page_size ?? 50));
+    const from = page * size;
+    const to = from + size - 1;
+    let q = supabaseAdmin
+      .from('security_events')
+      .select('id, created_at, user_id, api_key_id, session_id, event_type, severity, reason, ip_hash, device_hash, user_agent, metadata', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (data.severity && data.severity !== 'all') q = q.eq('severity', data.severity);
+    if (data.event_type) q = q.eq('event_type', data.event_type);
+    if (data.user_id) q = q.eq('user_id', data.user_id);
+    const { data: rows, count } = await q;
+    return { rows: rows ?? [], total: count ?? 0, page, pageSize: size };
+  });
