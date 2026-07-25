@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
+import { logSecurityEvent } from "../-audit";
 
 const schema = z.object({
   refresh_token: z.string().trim().regex(/^qlr_[a-f0-9]{64}$/i, "Invalid refresh token"),
@@ -46,7 +47,10 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
           { key: `refresh:ip:${ip}`, max: RATE_LIMIT_PRESETS.refresh.max, windowSeconds: RATE_LIMIT_PRESETS.refresh.windowSeconds },
           { key: `refresh:dev:${deviceKey}`, max: 15, windowSeconds: 60 },
         ], { failClosed: true });
-        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsFactory(METHODS), METHODS);
+        if (!rl.allowed) {
+          logSecurityEvent({ eventType: "refresh.rate_limited", severity: "warn", ip, device: device_fingerprint, userAgent: request.headers.get("user-agent") ?? undefined });
+          return rateLimitResponse(rl.retryAfter, origin, corsFactory(METHODS), METHODS);
+        }
 
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
         const refreshHash = await sha256Hex(refresh_token);
@@ -62,6 +66,7 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
           .maybeSingle();
         if (error) return jsonResponse({ ok: false, reason: "service_error", message: "Session service is temporarily unavailable." }, { status: 503, origin });
         if (!sessionRow) {
+          logSecurityEvent({ eventType: "refresh.unknown_token", severity: "warn", ip, device: device_fingerprint, userAgent: request.headers.get("user-agent") ?? undefined });
           return jsonResponse({ ok: false, reason: "invalid_refresh", message: "Session expired. Please re-activate the extension with your API key." }, { status: 401, origin });
         }
 
@@ -75,6 +80,17 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
             .update({ revoked_at: nowIso, reuse_detected_at: nowIso })
             .eq("api_key_id", sessionRow.api_key_id)
             .is("revoked_at", null);
+          logSecurityEvent({
+            eventType: "refresh.reuse_detected",
+            severity: "critical",
+            userId: sessionRow.user_id,
+            apiKeyId: sessionRow.api_key_id,
+            sessionId: sessionRow.id,
+            ip,
+            device: device_fingerprint,
+            userAgent: request.headers.get("user-agent") ?? undefined,
+            reason: "Rotated refresh token replayed",
+          });
           return jsonResponse({ ok: false, reason: "reuse_detected", message: "Security alert: this session was replayed. All sessions revoked — please re-activate." }, { status: 401, origin });
         }
 
@@ -82,6 +98,16 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
         if (new Date(sessionRow.refresh_expires_at) <= new Date()) return jsonResponse({ ok: false, reason: "expired", message: "Session expired. Please re-activate." }, { status: 401, origin });
         if (sessionRow.device_fingerprint !== device_fingerprint) {
           await admin.from("extension_sessions").update({ revoked_at: new Date().toISOString() }).eq("id", sessionRow.id);
+          logSecurityEvent({
+            eventType: "refresh.device_mismatch",
+            severity: "critical",
+            userId: sessionRow.user_id,
+            apiKeyId: sessionRow.api_key_id,
+            sessionId: sessionRow.id,
+            ip,
+            device: device_fingerprint,
+            userAgent: request.headers.get("user-agent") ?? undefined,
+          });
           return jsonResponse({ ok: false, reason: "device_mismatch", message: "Device mismatch. Please re-activate." }, { status: 403, origin });
         }
 

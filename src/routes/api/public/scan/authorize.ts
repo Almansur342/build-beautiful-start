@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
+import { logSecurityEvent } from "../-audit";
 
 const authorizationSchema = z.object({
   api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format").optional(),
@@ -96,6 +97,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           const { error: bindError } = await admin.from("api_keys").update({ device_fingerprint: device, bound_at: new Date().toISOString() }).eq("id", keyRow.id);
           if (bindError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not bind this device. Please try again." }, { status: 503, origin });
         } else if (keyRow.device_fingerprint !== device) {
+          logSecurityEvent({ eventType: "authorize.device_mismatch", severity: "critical", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: request.headers.get("user-agent") ?? undefined });
           return jsonResponse({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
 
@@ -152,6 +154,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
         if (!row?.allowed) {
           const used = row?.used ?? 0;
+          logSecurityEvent({ eventType: "authorize.quota_exceeded", severity: "warn", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: request.headers.get("user-agent") ?? undefined, metadata: { used, limit, plan: planLabel } });
           return jsonResponse({ ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}). Upgrade for more scans.`, remaining: 0, limit, plan: planLabel }, { status: 429, origin });
         }
 
