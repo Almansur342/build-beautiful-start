@@ -26,35 +26,35 @@ try {
 // more reliable than a direct cross-origin request from an extension document
 // and uses the host permissions declared in manifest.json.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.type !== 'qrinuxValidateKey') return false
+  if (!message || (message.type !== 'qrinuxValidateKey' && message.type !== 'qrinuxStartSession')) return false
 
-  // Phase 2 security: only accept requests from this extension. Reject anything
-  // originating from a web page (sender.tab present) or another extension.
+  // Phase 2 security: only accept requests from this extension.
   if (!sender || sender.id !== chrome.runtime.id || sender.tab) {
-    sendResponse({
-      ok: false,
-      status: 0,
-      data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' },
-    })
+    sendResponse({ ok: false, status: 0, data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' } })
     return false
   }
 
-  if (!self.LeadLensGate || typeof self.LeadLensGate.requestAuthorization !== 'function') {
-    sendResponse({
-      ok: false,
-      status: 0,
-      data: { reason: 'extension_error', message: 'The extension service is not ready. Reload the extension and try again.' },
-    })
+  if (!self.LeadLensGate) {
+    sendResponse({ ok: false, status: 0, data: { reason: 'extension_error', message: 'The extension service is not ready. Reload the extension and try again.' } })
     return false
   }
 
-  self.LeadLensGate.requestAuthorization(message.payload || {})
+  // Phase 3: activation now saves the key + starts a session in one call.
+  const runValidation = async () => {
+    const payload = message.payload || {}
+    const key = (payload.api_key || '').trim()
+    if (!key) return { ok: false, status: 0, data: { reason: 'bad_request', message: 'API key is required.' } }
+    await self.LeadLensGate.setApiKey(key)
+    const result = await self.LeadLensGate.verifyKey()
+    if (!result.ok) {
+      await self.LeadLensGate.clearApiKey()
+    }
+    return result
+  }
+
+  runValidation()
     .then(sendResponse)
-    .catch(() => sendResponse({
-      ok: false,
-      status: 0,
-      data: { reason: 'extension_error', message: 'The extension could not complete verification. Reload it and try again.' },
-    }))
+    .catch(() => sendResponse({ ok: false, status: 0, data: { reason: 'extension_error', message: 'The extension could not complete verification. Reload it and try again.' } }))
 
   return true
 })
