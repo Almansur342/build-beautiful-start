@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
+import { logSecurityEvent } from "../-audit";
 
 const schema = z.object({
   api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format"),
