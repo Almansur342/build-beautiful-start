@@ -1,3 +1,13 @@
+# v1.13.0
+
+- Fixed single and bulk scan accounting by batching every immutable scan event.
+- Added random scan/event IDs, refresh mutex and rotated refresh-token persistence.
+- Added partial batch acknowledgements, retry backoff/jitter, and 24-hour queue retention.
+- Removed page-cookie value collection.
+- Dashboard now uses atomic `scan_events` and `user_usage_daily`.
+- Normalized/redacted exported URLs and blocked-page evidence.
+- Fixed contact export summaries and improved venue classification priority.
+
 # Qrinux LeadLens 1.5.0 — Strict Qualification and Research-Only Gate Release
 
 ## What changed

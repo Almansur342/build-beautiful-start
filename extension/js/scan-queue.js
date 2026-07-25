@@ -8,12 +8,12 @@
 // alarms survive the eviction and wake the worker to drain the queue.
 //
 // The queue is idempotent: each event carries the immutable scan context's
-// event_id/scan_id, so the backend deduplicates within a 60s bucket even if
+// event_id/scan_id, so the backend deduplicates retries even if
 // the same event is retried after a worker restart.
 
 const QUEUE_STORE_KEY = 'qrinuxScanQueue'
 const QUEUE_ALARM = 'qrinuxScanQueueFlush'
-const QUEUE_MAX_AGE_MS = 10 * 60 * 1000       // drop events older than 10 min
+const QUEUE_MAX_AGE_MS = 24 * 60 * 60 * 1000       // drop events older than 10 min
 const QUEUE_HARD_CAP = 500                    // guardrail against runaway growth
 const DEFAULT_FLUSH_MINUTES = 1               // chrome.alarms minimum in prod is 1 min
 
@@ -41,7 +41,7 @@ const LeadLensScanQueue = {
     if (!ctx || !ctx.url || !ctx.event_id) return
     const items = await this._load()
 
-    // De-dupe on event_id — if the same bucketed event is already pending we
+    // De-dupe on event_id — retries reuse the same immutable event id, while
     // don't queue a second copy.
     if (items.some((it) => it.event_id === ctx.event_id)) return
 
@@ -50,6 +50,8 @@ const LeadLensScanQueue = {
       event_id: ctx.event_id,
       website_url: ctx.url,
       queued_at: Date.now(),
+      attempts: 0,
+      next_attempt_at: 0,
     })
 
     // Cap size — drop oldest first.
@@ -83,6 +85,8 @@ const LeadLensScanQueue = {
     try {
       let items = await this._load()
       items = await this._pruneStale(items)
+      const now = Date.now()
+      const ready = items.filter((it) => Number(it.next_attempt_at || 0) <= now)
 
       if (items.length === 0) {
         await this._save([])
@@ -102,8 +106,10 @@ const LeadLensScanQueue = {
         if (cfg && Number(cfg.batch_max_events) > 0) cap = Math.min(50, Number(cfg.batch_max_events))
       } catch (_) {}
 
-      const inFlight = items.slice(0, cap)
-      const rest = items.slice(cap)
+      if (ready.length === 0) { await this._save(items); return { ok: true, drained: 0, remaining: items.length } }
+      const inFlight = ready.slice(0, cap)
+      const inFlightIds = new Set(inFlight.map((it) => it.event_id))
+      const rest = items.filter((it) => !inFlightIds.has(it.event_id))
 
       const result = await self.LeadLensGate.authorizeBatch(inFlight.map((it) => ({
         website_url: it.website_url,
@@ -114,22 +120,42 @@ const LeadLensScanQueue = {
       // On success, drop the in-flight slice. On network / server error, keep
       // them and retry on the next alarm tick.
       if (result && result.ok) {
-        await this._save(rest)
-        return { ok: true, drained: inFlight.length, remaining: rest.length }
+        const rows = Array.isArray(result.results) ? result.results : []
+        const byId = new Map(rows.map((row) => [row.event_id, row]))
+        const retry = []
+        let drained = 0
+        for (const item of inFlight) {
+          const row = byId.get(item.event_id)
+          if (row && row.ok) { drained += 1; continue }
+          const reason = row?.reason || 'missing_ack'
+          const permanent = ['bad_request', 'quota_exceeded', 'plan_denied', 'scan_disabled', 'revoked', 'banned']
+          if (permanent.includes(reason)) { drained += 1; continue }
+          const attempts = Number(item.attempts || 0) + 1
+          if (attempts >= 8) { drained += 1; continue }
+          const delay = Math.min(60 * 60 * 1000, (2 ** attempts) * 30_000) + Math.floor(Math.random() * 15_000)
+          retry.push({ ...item, attempts, next_attempt_at: Date.now() + delay, last_error: reason })
+        }
+        const next = [...retry, ...rest].sort((a, b) => Number(a.queued_at) - Number(b.queued_at))
+        await this._save(next)
+        return { ok: true, drained, remaining: next.length }
       }
 
       const reason = result && result.reason
-      // Auth/plan denials won't recover on retry — drop the slice so the
-      // queue can't wedge forever.
-      const permanent = ['no_api_key', 'session_invalid', 'plan_denied', 'quota_exceeded', 'scan_disabled', 'bad_request']
+      const permanent = ['no_api_key', 'plan_denied', 'quota_exceeded', 'scan_disabled', 'bad_request', 'revoked', 'banned']
       if (permanent.includes(reason)) {
         await this._save(rest)
         return { ok: false, reason, drained: inFlight.length, remaining: rest.length }
       }
 
-      // Transient — put items back at the front.
-      await this._save(items)
-      return { ok: false, reason: reason || 'network_error', remaining: items.length }
+      const retry = inFlight.map((item) => {
+        const attempts = Number(item.attempts || 0) + 1
+        const retryAfterMs = Math.max(0, Number(result?.retry_after || 0) * 1000)
+        const delay = retryAfterMs || (Math.min(60 * 60 * 1000, (2 ** attempts) * 30_000) + Math.floor(Math.random() * 15_000))
+        return { ...item, attempts, next_attempt_at: Date.now() + delay, last_error: reason || 'network_error' }
+      }).filter((item) => item.attempts < 8)
+      const next = [...retry, ...rest].sort((a, b) => Number(a.queued_at) - Number(b.queued_at))
+      await this._save(next)
+      return { ok: false, reason: reason || 'network_error', remaining: next.length }
     } finally {
       this._flushing = false
     }

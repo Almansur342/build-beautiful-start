@@ -50,7 +50,7 @@ function OverviewPage() {
         <MetricCard
           icon={Globe}
           label="Total scans"
-          value={String((d?.history?.length ?? 0))}
+          value={String(d?.totalScans ?? 0)}
           sub="Last 20 shown"
         />
         <MetricCard

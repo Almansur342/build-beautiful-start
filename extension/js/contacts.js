@@ -736,7 +736,7 @@ const Contacts = {
     const lightweightRows = Object.values(summaryIndex || {}).map((summary = {}) => {
       const rows = Contacts.toArray(summary.rows)
       const representative = rows.find((row) => row.type === 'site') || rows[0] || {}
-      return { ...representative, summaryCounts: summary.summaryCounts || {}, summarySearch: summary.searchText || '' }
+      return { ...representative, contacts: rows, rows, summaryCounts: summary.summaryCounts || {}, summarySearch: summary.searchText || '' }
     }).filter((row) => row.websiteHost || row.websiteUrl)
     const rows = lightweightRows.length ? lightweightRows : Object.values(stored || {})
     return rows.map((item = {}) => ({
@@ -4266,6 +4266,39 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       })
       return verdict ? verdict.valid : true
     })
+    const quality = Contacts.scanQuality(site)
+    const redactText = (value = '') => String(value || '')
+      .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted-ip]')
+      .replace(/Cloudflare Ray ID:\s*[a-z0-9]+/gi, 'Cloudflare Ray ID: [redacted]')
+      .replace(/([?&](?:access_token|id_token|token|api[_-]?key|secret|session|sig|signature|anonymousId|vclid|redirectURI|affid|cxd|pid|utm_[^=]+)=)[^&\s]+/gi, '$1[redacted]')
+    const normaliseUrl = (value = '') => {
+      try {
+        const u = new URL(String(value || ''))
+        ;['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid','vclid','anonymousId','affid','cxd','pid','redirectURI','session','token','access_token','id_token','sig','signature'].forEach((key) => u.searchParams.delete(key))
+        u.hash = ''
+        return u.toString()
+      } catch (_) { return redactText(value) }
+    }
+    const deepRedact = (value) => {
+      if (Array.isArray(value)) return value.map(deepRedact)
+      if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, deepRedact(v)]))
+      return typeof value === 'string' ? redactText(value) : value
+    }
+    contacts.forEach((row) => { if (/^https?:/i.test(row.value || '')) row.value = normaliseUrl(row.value) })
+    const auditForExport = deepRedact(plain(Contacts.normaliseSeoAudit(site.seoAudit)))
+    if (/Blocked|Retry|required|Failed|Invalid|parked/i.test(quality.label || '')) {
+      auditForExport.score = null
+      auditForExport.issues = []
+      auditForExport.issueDetails = []
+    }
+    if (auditForExport.pageTextPreview) auditForExport.pageTextPreview = redactText(auditForExport.pageTextPreview)
+    if (auditForExport.rawTextChunks) Object.keys(auditForExport.rawTextChunks).forEach((k) => { auditForExport.rawTextChunks[k] = redactText(auditForExport.rawTextChunks[k]) })
+    const summaryCounts = {
+      total: contacts.length,
+      emails: contacts.filter((row) => row.type === 'email').length,
+      socials: contacts.filter((row) => row.type === 'social').length,
+      phones: contacts.filter((row) => row.type === 'phone').length,
+    }
     const classification = Contacts.businessType(site)
     const angles = globalThis.LeadLensIntelligence?.buildOutreachAngles?.(site, 5) || []
     const eligibility = Contacts.prospectEligibility(site)
@@ -4273,7 +4306,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     const readiness = Contacts.outreachReadiness(site)
     const opportunity = Contacts.opportunityScore(site)
     return {
-      host: site.host || Contacts.hostFromUrl(site.websiteUrl || ''), websiteUrl: site.websiteUrl || '', pageTitle: site.pageTitle || '',
+      host: site.host || Contacts.hostFromUrl(site.websiteUrl || ''), websiteUrl: normaliseUrl(site.websiteUrl || ''), pageTitle: site.pageTitle || '',
       latest: site.latest || '', lastSeenAt: site.lastSeenAt || '', scanQuality: Contacts.scanQuality(site),
       contacts,
       allEmails: [...new Set(contacts.filter((row) => row.type === 'email').map((row) => row.value))],
@@ -4281,7 +4314,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       allPhones: [...new Set(contacts.filter((row) => row.type === 'phone').map((row) => row.value))],
       sources: [...new Set(contacts.flatMap((row) => row.sources || []))],
       leadMeta: plain(Contacts.normaliseLeadMeta(site.leadMeta)),
-      seoAudit: plain(Contacts.normaliseSeoAudit(site.seoAudit)),
+      seoAudit: auditForExport,
       domainAge: plain(Contacts.normaliseDomainAge(site.domainAge)),
       technologies: plain(site.technologies instanceof Map ? [...site.technologies.values()] : Contacts.toArray(site.technologies)),
       technologyHistory: plain(Contacts.normaliseTechnologyHistory(site.technologyHistory)),
@@ -4294,7 +4327,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
         websiteOpportunity: plain(opportunity),
         outreachAngles: plain(angles),
       },
-      summaryCounts: plain(site.summaryCounts || {}),
+      summaryCounts,
     }
   },
 

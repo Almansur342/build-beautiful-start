@@ -6,7 +6,7 @@ export const getMyDashboardData = createServerFn({ method: 'GET' })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
-    const [profileRes, subRes, plansRes, settingsRes, todayRes, historyRes, roleRes] = await Promise.all([
+    const [profileRes, subRes, plansRes, settingsRes, todayRes, totalRes, historyRes, roleRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase
         .from('subscriptions')
@@ -17,8 +17,9 @@ export const getMyDashboardData = createServerFn({ method: 'GET' })
         .maybeSingle(),
       supabase.from('plans').select('*').eq('is_active', true).order('sort_order'),
       supabase.from('app_settings').select('*'),
-      supabase.rpc('get_today_scan_count', { _user_id: userId }),
-      supabase.from('scan_logs').select('website_url, scanned_at').eq('user_id', userId).order('scanned_at', { ascending: false }).limit(20),
+      supabase.from('user_usage_daily').select('used_count').eq('user_id', userId).eq('usage_date', new Date().toISOString().slice(0, 10)).maybeSingle(),
+      supabase.from('scan_events').select('event_id', { count: 'exact', head: true }).eq('user_id', userId),
+      supabase.from('scan_events').select('website_url, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
       supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
 
@@ -32,8 +33,9 @@ export const getMyDashboardData = createServerFn({ method: 'GET' })
       subscription: subRes.data,
       plans: plansRes.data ?? [],
       settings,
-      todayScans: todayRes.data ?? 0,
-      history: historyRes.data ?? [],
+      todayScans: todayRes.data?.used_count ?? 0,
+      totalScans: totalRes.count ?? 0,
+      history: (historyRes.data ?? []).map((row: any) => ({ website_url: row.website_url, scanned_at: row.created_at })),
       isSuperAdmin: roles.includes('super_admin'),
     };
   });

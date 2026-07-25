@@ -242,10 +242,12 @@
     if (id === 'localService' && scores.restaurant >= 14) id = 'restaurant'
     if (id === 'professional' && scores.legal >= 14) id = 'legal'
     const strongRestaurantTitle = /\brestaurant\b|\bcafe\b|\bbistro\b|\bpizzeria\b|\bfood\s+business\b/i.test(titleDescription)
+    const strongVenueTitle = /\b(?:convention|conference|congress|reception|banquet|wedding|event|meeting|training|formation)\s+(?:centre|center|hall|venue|space|room|rooms)|\b(?:room|hall|venue)\s+rental|location de salles|réserver une salle|capacit[ée] maximale/i.test(titleDescription + ' ' + haystack)
     const strongEducationTitle = /\buniversity\b|universit[éeä]|universidad|università|universiteit|大学|学校/i.test(titleDescription) || /\.(?:edu|ac)\.[a-z]{2,}$|\.edu$/.test(host)
     const strongGovernmentHost = /\.(?:gov|gouv)\.[a-z]{2,}$|\.gov$/.test(host)
     const strongManufacturerTitle = /\bleading\s+brand\b|\bmanufacturer\b|gaming\s+laptop/i.test(titleDescription)
     if ((scores.platform || 0) >= 60) id = 'platform'
+    else if (strongVenueTitle && (scores.venue || 0) >= 18) id = 'venue'
     else if (strongEducationTitle && (scores.education || 0) >= 24) id = 'education'
     else if (strongGovernmentHost && (scores.government || 0) >= 24) id = 'government'
     else if (strongRestaurantTitle && (scores.restaurant || 0) >= 24) id = 'restaurant'

@@ -23,6 +23,7 @@ const CONFIG_DEFAULTS = {
 }
 
 const LeadLensGate = {
+  _refreshPromise: null,
   API_BASES: LEADLENS_API_BASES,
 
   _storageGet(keys) {
@@ -164,21 +165,29 @@ const LeadLensGate = {
   },
 
   async _refreshSession() {
-    const session = await this._getSession()
-    if (!session || !session.refresh_token) return { ok: false, data: { reason: 'no_session' } }
-    const device = await this.getDeviceFingerprint()
-    const result = await this._fetchJson('/api/public/scan/session/refresh', {
-      refresh_token: session.refresh_token,
-      device_fingerprint: device,
-    })
-    if (result.ok) {
-      await this._saveSession({
-        ...session,
-        session_token: result.data.session_token,
-        session_expires_at: result.data.session_expires_at,
+    if (this._refreshPromise) return this._refreshPromise
+    this._refreshPromise = (async () => {
+      const session = await this._getSession()
+      if (!session || !session.refresh_token) return { ok: false, data: { reason: 'no_session' } }
+      const device = await this.getDeviceFingerprint()
+      const result = await this._fetchJson('/api/public/scan/session/refresh', {
+        refresh_token: session.refresh_token,
+        device_fingerprint: device,
       })
-    }
-    return result
+      if (result.ok) {
+        await this._saveSession({
+          ...session,
+          session_token: result.data.session_token,
+          refresh_token: result.data.refresh_token || session.refresh_token,
+          session_expires_at: result.data.session_expires_at,
+          refresh_expires_at: result.data.refresh_expires_at || session.refresh_expires_at,
+        })
+      } else if (['reuse_detected', 'invalid_refresh', 'revoked', 'expired'].includes(result.data?.reason)) {
+        await this._clearSession()
+      }
+      return result
+    })()
+    try { return await this._refreshPromise } finally { this._refreshPromise = null }
   },
 
   async _ensureSession() {

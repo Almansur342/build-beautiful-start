@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { generateMyApiKey, listMyApiKeys, resetMyDeviceBinding } from "@/lib/apiKeys.functions";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
-import extensionAsset from "@/assets/qrinux-leadlens.zip.asset.json";
 import { Copy, Download, KeyRound, RefreshCw, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/api-key")({
@@ -47,8 +46,8 @@ function ApiKeyPage() {
 
   const downloadExtension = () => {
     const a = document.createElement("a");
-    a.href = extensionAsset.url;
-    a.download = "qrinux-leadlens-v1.8.0.zip";
+    a.href = "/qrinux-leadlens-v1.13.0.zip";
+    a.download = "qrinux-leadlens-v1.13.0.zip";
     a.click();
   };
 

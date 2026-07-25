@@ -3,7 +3,7 @@
 // Qrinux LeadLens — Immutable scan context (Phase C)
 //
 // Every scan gets a single, frozen context object at the moment it starts.
-// The context binds: scan_id, event_id (idempotency bucket), url, host,
+// The context binds: scan_id, event_id (cryptographically random idempotency key), url, host,
 // started_at, device_fingerprint. Downstream steps (related-page fetch,
 // enrichment, batching) must reuse this exact context — they cannot mutate
 // url or scan_id mid-flight, which is what let earlier versions log the
@@ -17,28 +17,32 @@ const LeadLensScanContext = {
     let host = ''
     try { host = new URL(clean).host.toLowerCase() } catch (_) { host = '' }
 
-    const bucket = Math.floor(Date.now() / 60000)
-    let urlHash = ''
-    try {
-      const buf = await self.crypto.subtle.digest('SHA-1', new TextEncoder().encode(clean))
-      urlHash = Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('')
-    } catch (_) {
-      urlHash = Math.random().toString(36).slice(2, 18)
+    const makeUuid = (prefix) => {
+      if (self.crypto && self.crypto.randomUUID) return prefix + self.crypto.randomUUID()
+      const bytes = new Uint8Array(16)
+      try { self.crypto.getRandomValues(bytes) } catch (_) {
+        for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256)
+      }
+      return prefix + Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
     }
 
-    const scanId = (self.crypto && self.crypto.randomUUID)
-      ? self.crypto.randomUUID()
-      : ('scan_' + bucket + '_' + Math.random().toString(36).slice(2, 10))
+    const scanId = makeUuid('scan_')
+    const eventId = makeUuid('evt_')
 
     const device = (self.LeadLensGate && await self.LeadLensGate.getDeviceFingerprint()) || ''
 
     return Object.freeze({
       scan_id: scanId,
-      event_id: 'evt_' + bucket + '_' + urlHash,
+      event_id: eventId,
       url: clean,
       host,
       device_fingerprint: device,
       started_at: Date.now(),
+      tab_id: null,
+      scan_mode: 'manual',
+      completed_steps: Object.freeze([]),
+      cookie_action_taken: false,
+      cancelled: false,
     })
   },
 }

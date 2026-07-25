@@ -842,42 +842,15 @@ const Driver = {
           const ctx = self.LeadLensScanContext
             ? await self.LeadLensScanContext.createFromUrl(url)
             : null
-          const eventId = ctx ? ctx.event_id : ('evt_' + Math.floor(Date.now() / 60000) + '_' + Math.random().toString(36).slice(2, 10))
-          const scanId = ctx ? ctx.scan_id : ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : ('scan_' + Math.random().toString(36).slice(2, 10)))
+          const eventId = ctx ? ctx.event_id : ('evt_' + ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : Math.random().toString(36).slice(2)))
+          const scanId = ctx ? ctx.scan_id : ('scan_' + ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : Math.random().toString(36).slice(2)))
           this._activeScanContext = ctx
 
-          const enqueueFallback = async () => {
-            try {
-              if (self.LeadLensScanQueue) {
-                await self.LeadLensScanQueue.enqueue(ctx || { url, event_id: eventId, scan_id: scanId })
-              }
-            } catch (_) {}
-          }
-
-          if (self.LeadLensGate) {
-            const gate = await self.LeadLensGate.authorize(url, { eventId, scanId })
-            if (!gate.ok) {
-              // Transient failures: queue for retry via chrome.alarms and
-              // continue the scan so the local counter and server counter stay
-              // in sync once the queue drains. Backend dedupes by event_id.
-              const transient = gate.reason === 'network_error' || gate.reason === 'service_error' || gate.reason === 'rate_limited'
-              if (transient) {
-                await enqueueFallback()
-              } else {
-                try {
-                  chrome.notifications && chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: chrome.runtime.getURL('images/icon_128.png'),
-                    title: 'Qrinux LeadLens — scan blocked',
-                    message: gate.message || 'Scan blocked. Check your API key or plan.',
-                  })
-                } catch (e) {}
-                return
-              }
-            }
-          } else {
-            // Gate script not loaded yet — queue and let the alarm drain it.
-            await enqueueFallback()
+          // Record exactly one immutable event for this page load. The
+          // persistent queue batches usage events once per minute; backend
+          // quota/idempotency remains authoritative.
+          if (self.LeadLensScanQueue) {
+            await self.LeadLensScanQueue.enqueue(ctx || { url, event_id: eventId, scan_id: scanId })
           }
         }
       } catch (e) {

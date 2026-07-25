@@ -784,13 +784,8 @@ const Content = {
             : resolve()
         ))
 
-      const cookies = document.cookie.split('; ').reduce(
-        (cookies, cookie) => ({
-          ...cookies,
-          [cookie.split('=').shift()]: [cookie.split('=').pop()],
-        }),
-        {}
-      )
+      // Privacy: never read or export cookie names/values.
+      const cookies = {}
 
       // Text
       // eslint-disable-next-line unicorn/prefer-text-content
