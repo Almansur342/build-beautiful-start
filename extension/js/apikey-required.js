@@ -66,7 +66,8 @@
           placeholder="qlk_..."
           style="width:100%;box-sizing:border-box;padding:11px 12px;background:#141416;color:#fff;border:1px solid #2a2a2d;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;outline:none" />
 
-        <div id="qrinux-key-msg" style="font-size:12px;min-height:16px;margin-top:8px;line-height:1.45"></div>
+        <div id="qrinux-key-msg" role="status" aria-live="polite"
+          style="font-size:12px;min-height:18px;margin-top:8px;line-height:1.45"></div>
 
         <button id="qrinux-key-save"
           style="width:100%;margin-top:6px;padding:11px 14px;background:#fff;color:#000;border:0;font-weight:600;font-size:13px;cursor:pointer">
@@ -84,8 +85,6 @@
         </div>
       </div>
     `
-    wrap.addEventListener('click', (e) => e.stopPropagation(), true)
-    wrap.addEventListener('keydown', (e) => e.stopPropagation(), true)
     return wrap
   }
 
@@ -96,17 +95,35 @@
 
   async function validateKey(key) {
     const fp = await getOrMakeFp()
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
       const res = await fetch(API_BASE + '/api/public/scan/authorize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ api_key: key, device_fingerprint: fp, website_url: '' }),
+        signal: controller.signal,
       })
-      const data = await res.json().catch(() => ({}))
+      const responseText = await res.text()
+      let data = {}
+      try { data = responseText ? JSON.parse(responseText) : {} } catch (_) {}
       if (res.ok && data.ok) return { ok: true, data }
-      return { ok: false, reason: data.reason || 'denied', message: data.message || `Server returned ${res.status}.` }
+      return {
+        ok: false,
+        reason: data.reason || 'denied',
+        message: data.message || `Activation failed (server response ${res.status}). Please try again.`,
+      }
     } catch (e) {
-      return { ok: false, reason: 'network_error', message: 'Could not reach Qrinux server. Check your internet connection.' }
+      const timedOut = e && e.name === 'AbortError'
+      return {
+        ok: false,
+        reason: timedOut ? 'timeout' : 'network_error',
+        message: timedOut
+          ? 'Verification timed out. Check your internet connection and try again.'
+          : 'Could not reach the Qrinux server. Check your internet connection and try again.',
+      }
+    } finally {
+      clearTimeout(timeout)
     }
   }
 
@@ -130,27 +147,45 @@
 
     async function submit() {
       const v = (input.value || '').trim()
-      if (v.length < 8) { setMsg(msg, 'Please paste a valid API key.', 'error'); return }
+      if (btn.disabled) return
+      if (!/^qlk_[a-f0-9]{40}$/i.test(v)) {
+        setMsg(msg, 'Invalid key format. Paste the complete key beginning with qlk_.', 'error')
+        return
+      }
       btn.disabled = true
+      btn.style.cursor = 'wait'
+      btn.style.opacity = '0.72'
       const originalLabel = btn.textContent
       btn.textContent = 'Verifying…'
       setMsg(msg, 'Checking your key with Qrinux…', 'info')
 
-      const result = await validateKey(v)
-      if (result.ok) {
-        await setKey(v)
-        const plan = (result.data && result.data.plan) || 'Free'
-        const remaining = result.data && result.data.remaining
-        setMsg(
-          msg,
-          `✓ Activated on ${plan} plan${remaining != null ? ` — ${remaining} scans left today` : ''}. Reloading…`,
-          'success'
-        )
-        setTimeout(() => location.reload(), 900)
-      } else {
+      try {
+        const result = await validateKey(v)
+        if (result.ok) {
+          await setKey(v)
+          const plan = (result.data && result.data.plan) || 'Free'
+          const remaining = result.data && result.data.remaining
+          setMsg(
+            msg,
+            `✓ Activation successful. ${plan} plan${remaining != null ? ` — ${remaining} scans remaining today` : ''}.`,
+            'success'
+          )
+          btn.textContent = 'Activated successfully ✓'
+          btn.style.cursor = 'default'
+          btn.style.opacity = '1'
+          setTimeout(() => location.reload(), 1400)
+          return
+        }
+        setMsg(msg, `✕ ${result.message || 'Activation failed. Please try again.'}`, 'error')
+      } catch (_) {
+        setMsg(msg, '✕ An unexpected error occurred. Please try again.', 'error')
+      } finally {
         btn.disabled = false
-        btn.textContent = originalLabel
-        setMsg(msg, result.message || 'Activation failed.', 'error')
+        if (btn.textContent !== 'Activated successfully ✓') {
+          btn.textContent = originalLabel
+          btn.style.cursor = 'pointer'
+          btn.style.opacity = '1'
+        }
       }
     }
 
