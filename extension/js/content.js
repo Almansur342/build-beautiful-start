@@ -2776,18 +2776,20 @@ const Content = {
       return false
     }
 
-    Content.driver('log', { source, func, args })
-
-    if (!Content[func]) {
-      const error = new Error(`Method does not exist: Content.${func}`)
-      Content.error(error)
-
-      if (callback) {
-        callback({ error: error.message })
-      }
-
+    // Phase 2 security: reject any message not originating from this extension.
+    if (!sender || sender.id !== chrome.runtime.id) {
+      if (callback) callback({ error: 'unauthorized-sender' })
       return !!callback
     }
+
+    // Phase 2 security: explicit allowlist. Do not expose arbitrary Content methods.
+    if (!Content.ALLOWED_MESSAGE_METHODS.has(func) || typeof Content[func] !== 'function') {
+      const error = new Error(`Method not allowed: Content.${func}`)
+      if (callback) callback({ error: error.message })
+      return !!callback
+    }
+
+    Content.driver('log', { source, func, args })
 
     Promise.resolve(Content[func].call(Content, ...(args || [])))
       .then((result) => {
@@ -2803,6 +2805,7 @@ const Content = {
 
     return !!callback
   },
+
 
   driverFallback(func, message = '') {
     if (func === 'error') return undefined
