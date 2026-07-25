@@ -47,7 +47,10 @@ export const Route = createFileRoute("/api/public/scan/session/refresh")({
           { key: `refresh:ip:${ip}`, max: RATE_LIMIT_PRESETS.refresh.max, windowSeconds: RATE_LIMIT_PRESETS.refresh.windowSeconds },
           { key: `refresh:dev:${deviceKey}`, max: 15, windowSeconds: 60 },
         ], { failClosed: true });
-        if (!rl.allowed) return rateLimitResponse(rl.retryAfter, origin, corsFactory(METHODS), METHODS);
+        if (!rl.allowed) {
+          logSecurityEvent({ eventType: "refresh.rate_limited", severity: "warn", ip, device: device_fingerprint, userAgent: request.headers.get("user-agent") ?? undefined });
+          return rateLimitResponse(rl.retryAfter, origin, corsFactory(METHODS), METHODS);
+        }
 
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
         const refreshHash = await sha256Hex(refresh_token);
