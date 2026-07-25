@@ -48,6 +48,7 @@ function enqueueContactItemsWrite(task) {
 }
 
 const activePageScans = new Map()
+const activeScanContexts = new Map()
 
 const scanSessionTtl = 1000 * 60 * 2
 const scanSessionStorageKey = 'leadLensActivePageScans'
@@ -652,7 +653,7 @@ const Driver = {
     return { ok: true, status: 'browser-database' }
   },
 
-  beginPageScan(url) {
+  async beginPageScan(url) {
     const hostname = Driver.normaliseScanHostname(url)
 
     if (!hostname) {
@@ -661,12 +662,16 @@ const Driver = {
 
     Driver.cleanupPageScans()
     activePageScans.set(hostname, Date.now() + scanSessionTtl)
+    const ctx = self.LeadLensScanContext
+      ? await self.LeadLensScanContext.createFromUrl(url)
+      : null
+    if (ctx) activeScanContexts.set(hostname, ctx)
     Driver.persistPageScanSessions()
 
     return true
   },
 
-  endPageScan(url) {
+  async endPageScan(url, completed = false) {
     const hostname = Driver.normaliseScanHostname(url)
 
     if (!hostname) {
@@ -677,6 +682,11 @@ const Driver = {
     // scan can still be associated with this website, but normal browsing stays
     // outside automatic scan processing.
     activePageScans.set(hostname, Date.now() + 15000)
+    const ctx = activeScanContexts.get(hostname)
+    activeScanContexts.delete(hostname)
+    if (completed && ctx && self.LeadLensScanQueue) {
+      await self.LeadLensScanQueue.enqueue(ctx)
+    }
     Driver.persistPageScanSessions()
 
     return true
@@ -833,36 +843,6 @@ const Driver = {
    */
   async onContentLoad(url, items, language, requires, categoryRequires) {
     try {
-      // Qrinux LeadLens — log this page scan + enforce daily quota
-      try {
-        if (url && typeof self !== 'undefined') {
-          // Phase C: build an immutable scan context up-front. All downstream
-          // work in this scan (enrichment, batching, logging) MUST reuse
-          // ctx.scan_id / ctx.event_id — do not derive a new id later.
-          const ctx = self.LeadLensScanContext
-            ? await self.LeadLensScanContext.createFromUrl(url)
-            : null
-          const eventId = ctx ? ctx.event_id : ('evt_' + ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : Math.random().toString(36).slice(2)))
-          const scanId = ctx ? ctx.scan_id : ('scan_' + ((self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : Math.random().toString(36).slice(2)))
-          this._activeScanContext = ctx
-
-          // Record exactly one immutable event for this page load. The
-          // persistent queue batches usage events once per minute; backend
-          // quota/idempotency remains authoritative.
-          if (self.LeadLensScanQueue) {
-            await self.LeadLensScanQueue.enqueue(ctx || { url, event_id: eventId, scan_id: scanId })
-          }
-        }
-      } catch (e) {
-        // Transient error contacting the gate — queue and continue so the
-        // scan still gets accounted for once connectivity returns.
-        try {
-          const ctx = this._activeScanContext
-          if (ctx && self.LeadLensScanQueue) await self.LeadLensScanQueue.enqueue(ctx)
-        } catch (_) {}
-      }
-
-
       items.cookies = items.cookies || {}
 
       // Use only page-visible cookies by default. The privileged chrome.cookies

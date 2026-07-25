@@ -11,6 +11,8 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Receipt, FileDown, ExternalLink, Check, ChevronRight } from "lucide-react";
 
+const paymentsToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({ meta: [{ title: "Billing — Qrinux LeadLens" }] }),
   component: BillingPage,
@@ -46,6 +48,10 @@ function BillingPage() {
 
   const startUpgrade = async (lookupKey: string) => {
     setCheckoutErr(null);
+    if (!paymentsToken) {
+      setCheckoutErr("Payments are not configured for this build yet.");
+      return;
+    }
     const res = await startCheckout({
       data: {
         priceLookupKey: lookupKey,
@@ -62,19 +68,29 @@ function BillingPage() {
 
   const d = dash.data;
   const currentPlan = d?.subscription?.plans as any;
+  const isPaidPlan = Boolean(currentPlan && currentPlan.slug !== "free");
   const bill = billing.data && "invoices" in billing.data ? billing.data : null;
 
   return (
     <DashboardShell title="Billing" description="Manage your plan, view invoices, and request refunds.">
+      {!paymentsToken ? (
+        <div className="border border-destructive/30 bg-destructive/5 px-4 py-3 mb-6 text-sm text-destructive">
+          Production checkout is not configured yet.
+        </div>
+      ) : paymentsToken.startsWith("pk_test_") ? (
+        <div className="border border-amber-300 bg-amber-50 px-4 py-3 mb-6 text-sm text-amber-800">
+          Payments in this preview use test mode.
+        </div>
+      ) : null}
       {/* Current plan */}
       <section className="bg-background border border-border rounded-2xl p-6 mb-6">
         <div className="flex items-baseline justify-between flex-wrap gap-3">
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Current plan</div>
-            <div className="text-2xl font-semibold mt-1">{currentPlan?.name ?? "Free"}</div>
+             <div className="text-2xl font-semibold mt-1">{isPaidPlan ? currentPlan.name : "Free"}</div>
             <div className="text-sm text-muted-foreground mt-1">
-              ${currentPlan?.price_usd ?? 0}/mo •{" "}
-              {currentPlan?.daily_scan_limit == null && currentPlan?.slug !== "free"
+               ${isPaidPlan ? currentPlan.price_usd : 0}/mo •{" "}
+               {isPaidPlan && currentPlan.daily_scan_limit == null
                 ? "Unlimited scans"
                 : `${currentPlan?.daily_scan_limit ?? d?.settings?.free_daily_limit ?? 100} scans / day`}
             </div>
@@ -92,7 +108,7 @@ function BillingPage() {
         <h2 className="font-semibold mb-4">Change plan</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(d?.plans ?? []).map((p: any) => {
-            const isCurrent = p.id === currentPlan?.id;
+             const isCurrent = isPaidPlan ? p.id === currentPlan.id : p.slug === "free";
             return (
               <div
                 key={p.id}
@@ -121,7 +137,7 @@ function BillingPage() {
                     <Check className="h-3.5 w-3.5 text-emerald-600" /> Device-bound API key
                   </li>
                 </ul>
-                {!isCurrent && p.slug !== "free" && p.stripe_price_id && (
+                {!isCurrent && p.slug !== "free" && p.stripe_price_id && paymentsToken && (
                   <Button size="sm" className="w-full mt-5" onClick={() => startUpgrade(p.stripe_price_id)}>
                     Upgrade <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>

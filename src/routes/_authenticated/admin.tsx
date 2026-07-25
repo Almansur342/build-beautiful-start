@@ -149,6 +149,10 @@ function UsersTab() {
         <tbody>
           {o.users.map((u: any) => {
             const userKeys = o.apiKeys.filter((k: any) => k.user_id === u.id && !k.revoked_at);
+            const currentSubscription = o.subscriptions.find((s: any) =>
+              s.user_id === u.id && (!s.current_period_end || new Date(s.current_period_end) > new Date())
+            );
+            const userPlan = currentSubscription?.plans?.name ?? "Free";
             return (
               <tr key={u.id} className="border-t border-border/40">
                 <td className="py-3 px-5 font-medium">
@@ -162,7 +166,7 @@ function UsersTab() {
                   {u.banned ? (
                     <span className="text-xs px-2 py-0.5 bg-red-50 text-red-700">Banned</span>
                   ) : (
-                    <span className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700">Active</span>
+                    <span className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700">Active · {userPlan}</span>
                   )}
                 </td>
                 <td className="py-3 pr-5">
