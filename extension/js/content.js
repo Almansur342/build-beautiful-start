@@ -236,6 +236,20 @@ const Content = {
   analyzedRequires: [],
   scanCompleteSent: false,
 
+  // Phase 2 security: explicit allowlist for chrome.runtime message dispatch.
+  // Any function not listed here cannot be invoked via extension messaging,
+  // even if it exists on the Content object.
+  ALLOWED_MESSAGE_METHODS: new Set([
+    'ping',
+    'startLeadLensScan',
+    'analyzeRequires',
+    'onGetTechnologies',
+    'extractContacts',
+    'extractEmails',
+  ]),
+
+
+
   /**
    * Initialise content script without collecting page data.
    * A scan only starts after the user clicks the floating button or a
@@ -510,6 +524,17 @@ const Content = {
   async tryAcceptCookieConsent() {
     const enabled = await Content.storageGet('leadLensAutoAcceptCookieConsent', true)
     if (!enabled) return { enabled: false, clicked: false, reason: 'disabled' }
+
+    // Phase 2 safety: never auto-click on sensitive flows. Clicking a banner on a
+    // login / checkout / payment / admin page can flip account-level tracking
+    // toggles or dismiss a real user prompt. Skip on any sensitive path.
+    const SENSITIVE_PATH_RE = /(^|\/)(login|signin|sign-in|signup|sign-up|register|logout|account|dashboard|billing|checkout|cart|admin|settings|profile|payment|payments|pay|bank|banking|wallet|onboarding|kyc|verify|two[-_]?factor|2fa|mfa|reset-password|password|wp-admin|wp-login)(\/|$|\?|#)/i
+    try {
+      if (SENSITIVE_PATH_RE.test(location.pathname)) {
+        return { enabled: true, clicked: false, verified: false, reason: 'sensitive-path' }
+      }
+    } catch (_) { /* fall through */ }
+
 
     const explicitSelectors = [
       '#onetrust-accept-btn-handler',
@@ -2776,18 +2801,20 @@ const Content = {
       return false
     }
 
-    Content.driver('log', { source, func, args })
-
-    if (!Content[func]) {
-      const error = new Error(`Method does not exist: Content.${func}`)
-      Content.error(error)
-
-      if (callback) {
-        callback({ error: error.message })
-      }
-
+    // Phase 2 security: reject any message not originating from this extension.
+    if (!sender || sender.id !== chrome.runtime.id) {
+      if (callback) callback({ error: 'unauthorized-sender' })
       return !!callback
     }
+
+    // Phase 2 security: explicit allowlist. Do not expose arbitrary Content methods.
+    if (!Content.ALLOWED_MESSAGE_METHODS.has(func) || typeof Content[func] !== 'function') {
+      const error = new Error(`Method not allowed: Content.${func}`)
+      if (callback) callback({ error: error.message })
+      return !!callback
+    }
+
+    Content.driver('log', { source, func, args })
 
     Promise.resolve(Content[func].call(Content, ...(args || [])))
       .then((result) => {
@@ -2803,6 +2830,7 @@ const Content = {
 
     return !!callback
   },
+
 
   driverFallback(func, message = '') {
     if (func === 'error') return undefined
