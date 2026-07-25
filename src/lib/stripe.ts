@@ -7,8 +7,7 @@ export type StripeEnv = "sandbox" | "live";
 export function getStripeEnvironment(): StripeEnv {
   if (clientToken?.startsWith("pk_test_")) return "sandbox";
   if (clientToken?.startsWith("pk_live_")) return "live";
-  // Sandbox default lets Stripe upgrade flow surface a clear error rather than crash the dashboard.
-  return "sandbox";
+  throw new Error("Payments are not configured for this build. Complete payment setup before checkout.");
 }
 
 let stripePromise: Promise<Stripe | null> | null = null;

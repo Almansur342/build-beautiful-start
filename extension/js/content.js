@@ -463,6 +463,7 @@ const Content = {
     Content.scanRunning = true
     Content.updateScanButton('Checking…', true)
     let scanStarted = false
+    let scanCompleted = false
 
     try {
       const allowed = await Content.driver('canStartPageScan', [location.href])
@@ -487,6 +488,7 @@ const Content = {
       }
 
       Content.updateScanButton('Scanned ✓', false)
+      scanCompleted = true
       setTimeout(() => Content.updateScanButton('Scan', false), 4000)
       return { ok: true }
     } catch (error) {
@@ -495,7 +497,7 @@ const Content = {
       return { ok: false, error: String(error?.message || error) }
     } finally {
       if (scanStarted) {
-        await Content.driver('endPageScan', [location.href])
+        await Content.driver('endPageScan', [location.href, scanCompleted])
       }
       Content.scanRunning = false
     }

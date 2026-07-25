@@ -12,6 +12,7 @@ export const getMyDashboardData = createServerFn({ method: 'GET' })
         .from('subscriptions')
         .select('id, status, current_period_end, plans(*)')
         .eq('user_id', userId)
+        .in('status', ['active', 'trialing', 'past_due'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -28,9 +29,13 @@ export const getMyDashboardData = createServerFn({ method: 'GET' })
 
     const roles = (roleRes.data ?? []).map((r) => r.role);
 
+    const subscription = subRes.data && (
+      !subRes.data.current_period_end || new Date(subRes.data.current_period_end) > new Date()
+    ) ? subRes.data : null;
+
     return {
       profile: profileRes.data,
-      subscription: subRes.data,
+      subscription,
       plans: plansRes.data ?? [],
       settings,
       todayScans: todayRes.data?.used_count ?? 0,

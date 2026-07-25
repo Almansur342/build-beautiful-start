@@ -25,8 +25,11 @@ function OverviewPage() {
   const d = dash.data;
   const activeKey = (keys.data ?? []).find((k) => !k.revoked_at);
   const currentPlan = d?.subscription?.plans as any;
-  const dailyLimit = (currentPlan?.daily_scan_limit as number | null | undefined) ?? (d?.settings?.free_daily_limit as number ?? 100);
-  const isUnlimited = currentPlan?.daily_scan_limit == null && currentPlan?.slug !== "free";
+  const isPaidPlan = Boolean(currentPlan && currentPlan.slug !== "free");
+  const isUnlimited = isPaidPlan && currentPlan.daily_scan_limit == null;
+  const dailyLimit = isPaidPlan
+    ? ((currentPlan.daily_scan_limit as number | null) ?? 0)
+    : Number(d?.settings?.free_daily_limit ?? 100);
   const usagePct = isUnlimited ? 0 : Math.min(100, Math.round(((d?.todayScans ?? 0) / (dailyLimit || 1)) * 100));
 
   return (
@@ -44,7 +47,7 @@ function OverviewPage() {
         <MetricCard
           icon={Activity}
           label="Current plan"
-          value={currentPlan?.name ?? "Free"}
+          value={isPaidPlan ? currentPlan.name : "Free"}
           sub={`$${currentPlan?.price_usd ?? 0}/mo`}
         />
         <MetricCard
@@ -124,6 +127,7 @@ function OverviewPage() {
           <h3 className="font-semibold mb-4">Session</h3>
           <div className="space-y-3 text-sm">
             <StatusRow label="Account" value="Active" ok />
+            <StatusRow label="Plan" value={isPaidPlan ? currentPlan.name : "Free"} ok />
             <StatusRow label="API key" value={activeKey ? "Generated" : "Missing"} ok={!!activeKey} />
             <StatusRow label="Device" value={activeKey?.device_fingerprint ? "Bound" : "Unbound"} ok={!!activeKey?.device_fingerprint} />
             <StatusRow label="Last scan" value={d?.history?.[0] ? new Date(d.history[0].scanned_at).toLocaleDateString() : "—"} ok />

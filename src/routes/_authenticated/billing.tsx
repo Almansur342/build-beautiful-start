@@ -62,6 +62,7 @@ function BillingPage() {
 
   const d = dash.data;
   const currentPlan = d?.subscription?.plans as any;
+  const isPaidPlan = Boolean(currentPlan && currentPlan.slug !== "free");
   const bill = billing.data && "invoices" in billing.data ? billing.data : null;
 
   return (
@@ -71,10 +72,10 @@ function BillingPage() {
         <div className="flex items-baseline justify-between flex-wrap gap-3">
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Current plan</div>
-            <div className="text-2xl font-semibold mt-1">{currentPlan?.name ?? "Free"}</div>
+             <div className="text-2xl font-semibold mt-1">{isPaidPlan ? currentPlan.name : "Free"}</div>
             <div className="text-sm text-muted-foreground mt-1">
-              ${currentPlan?.price_usd ?? 0}/mo •{" "}
-              {currentPlan?.daily_scan_limit == null && currentPlan?.slug !== "free"
+               ${isPaidPlan ? currentPlan.price_usd : 0}/mo •{" "}
+               {isPaidPlan && currentPlan.daily_scan_limit == null
                 ? "Unlimited scans"
                 : `${currentPlan?.daily_scan_limit ?? d?.settings?.free_daily_limit ?? 100} scans / day`}
             </div>
@@ -92,7 +93,7 @@ function BillingPage() {
         <h2 className="font-semibold mb-4">Change plan</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(d?.plans ?? []).map((p: any) => {
-            const isCurrent = p.id === currentPlan?.id;
+             const isCurrent = isPaidPlan ? p.id === currentPlan.id : p.slug === "free";
             return (
               <div
                 key={p.id}
