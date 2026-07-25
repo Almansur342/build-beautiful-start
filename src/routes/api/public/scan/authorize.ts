@@ -97,6 +97,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           const { error: bindError } = await admin.from("api_keys").update({ device_fingerprint: device, bound_at: new Date().toISOString() }).eq("id", keyRow.id);
           if (bindError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not bind this device. Please try again." }, { status: 503, origin });
         } else if (keyRow.device_fingerprint !== device) {
+          logSecurityEvent({ eventType: "authorize.device_mismatch", severity: "critical", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: request.headers.get("user-agent") ?? undefined });
           return jsonResponse({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
 
