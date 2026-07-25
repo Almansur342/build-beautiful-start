@@ -525,6 +525,17 @@ const Content = {
     const enabled = await Content.storageGet('leadLensAutoAcceptCookieConsent', true)
     if (!enabled) return { enabled: false, clicked: false, reason: 'disabled' }
 
+    // Phase 2 safety: never auto-click on sensitive flows. Clicking a banner on a
+    // login / checkout / payment / admin page can flip account-level tracking
+    // toggles or dismiss a real user prompt. Skip on any sensitive path.
+    const SENSITIVE_PATH_RE = /(^|\/)(login|signin|sign-in|signup|sign-up|register|logout|account|dashboard|billing|checkout|cart|admin|settings|profile|payment|payments|pay|bank|banking|wallet|onboarding|kyc|verify|two[-_]?factor|2fa|mfa|reset-password|password|wp-admin|wp-login)(\/|$|\?|#)/i
+    try {
+      if (SENSITIVE_PATH_RE.test(location.pathname)) {
+        return { enabled: true, clicked: false, verified: false, reason: 'sensitive-path' }
+      }
+    } catch (_) { /* fall through */ }
+
+
     const explicitSelectors = [
       '#onetrust-accept-btn-handler',
       '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll',
