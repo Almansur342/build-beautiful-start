@@ -45,41 +45,42 @@
       'position:fixed','inset:0','z-index:2147483647',
       'background:rgba(15,15,17,0.96)','color:#fff',
       'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
-      'display:flex','align-items:center','justify-content:center',
-      'padding:24px','overflow:auto',
+      'display:block','overflow:auto',
+      '-webkit-overflow-scrolling:touch',
+      'padding:16px','box-sizing:border-box',
     ].join(';'))
 
     wrap.innerHTML = `
-      <div style="max-width:420px;width:100%;background:#0b0b0c;border:1px solid #262629;padding:28px;box-sizing:border-box">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <div style="width:32px;height:32px;background:#fff;color:#000;display:grid;place-items:center;font-weight:800">Q</div>
-          <div style="font-weight:600;font-size:15px;letter-spacing:0.2px">Qrinux LeadLens</div>
+      <div style="max-width:420px;width:100%;margin:0 auto;background:#0b0b0c;border:1px solid #262629;padding:20px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div style="width:28px;height:28px;background:#fff;color:#000;display:grid;place-items:center;font-weight:800;font-size:13px">Q</div>
+          <div style="font-weight:600;font-size:14px;letter-spacing:0.2px">Qrinux LeadLens</div>
         </div>
-        <div style="font-size:20px;font-weight:600;line-height:1.3;margin-bottom:8px">Activate your extension</div>
-        <div style="font-size:13px;color:#a1a1aa;line-height:1.55;margin-bottom:18px">
+        <div style="font-size:17px;font-weight:600;line-height:1.3;margin-bottom:6px">Activate your extension</div>
+        <div style="font-size:12px;color:#a1a1aa;line-height:1.5;margin-bottom:14px">
           Paste your personal API key from your Qrinux dashboard to unlock scanning on this device.
         </div>
 
-        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;margin-bottom:6px">API key</label>
+        <label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;margin-bottom:6px">API key</label>
         <input id="qrinux-key-input" type="text" autocomplete="off" spellcheck="false"
           placeholder="qlk_..."
-          style="width:100%;box-sizing:border-box;padding:11px 12px;background:#141416;color:#fff;border:1px solid #2a2a2d;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;outline:none" />
+          style="width:100%;box-sizing:border-box;padding:10px 11px;background:#141416;color:#fff;border:1px solid #2a2a2d;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;outline:none" />
 
         <div id="qrinux-key-msg" role="status" aria-live="polite"
-          style="font-size:12px;min-height:18px;margin-top:8px;line-height:1.45"></div>
+          style="font-size:12px;min-height:16px;margin-top:8px;line-height:1.45"></div>
 
         <button id="qrinux-key-save"
-          style="width:100%;margin-top:6px;padding:11px 14px;background:#fff;color:#000;border:0;font-weight:600;font-size:13px;cursor:pointer">
+          style="width:100%;margin-top:4px;padding:10px 14px;background:#fff;color:#000;border:0;font-weight:600;font-size:13px;cursor:pointer">
           Activate LeadLens
         </button>
 
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid #1f1f22;font-size:12px;color:#a1a1aa;line-height:1.6">
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1f1f22;font-size:11px;color:#a1a1aa;line-height:1.55">
           Don't have a key yet?<br>
           <a id="qrinux-open-dashboard" href="${DASHBOARD_URL}" target="_blank"
             style="color:#fff;text-decoration:underline">Open your Qrinux dashboard →</a>
         </div>
 
-        <div style="margin-top:14px;font-size:11px;color:#71717a;line-height:1.55">
+        <div style="margin-top:10px;font-size:10px;color:#71717a;line-height:1.5">
           One API key locks to one device on first use. Free plan includes 100 scans / 24h.
         </div>
       </div>
