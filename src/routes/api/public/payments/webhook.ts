@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
 
-async function upsertSubscription(sub: any, environment: StripeEnv) {
+async function upsertSubscription(sub: any) {
   const userId = sub.metadata?.userId;
   if (!userId) { console.error("No userId in subscription metadata"); return; }
   const item = sub.items?.data?.[0];
@@ -11,7 +11,7 @@ async function upsertSubscription(sub: any, environment: StripeEnv) {
   const { data: plan } = await admin.from("plans").select("id, validity_days").eq("stripe_price_id", lookupKey).maybeSingle();
   if (!plan) { console.error("Plan not found for lookup_key", lookupKey); return; }
   const periodEnd = item?.current_period_end ?? sub.current_period_end;
-  await admin.from("subscriptions").upsert({
+  const subscriptionRow = {
     user_id: userId,
     plan_id: plan.id,
     stripe_subscription_id: sub.id,
@@ -19,7 +19,19 @@ async function upsertSubscription(sub: any, environment: StripeEnv) {
     status: sub.status,
     current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
     updated_at: new Date().toISOString(),
-  }, { onConflict: "stripe_subscription_id" });
+  };
+  const { data: existing } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("stripe_subscription_id", sub.id)
+    .maybeSingle();
+  if (existing?.id) {
+    const { error } = await admin.from("subscriptions").update(subscriptionRow).eq("id", existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await admin.from("subscriptions").insert(subscriptionRow);
+    if (error) throw error;
+  }
 }
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
@@ -34,7 +46,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           switch (event.type) {
             case "customer.subscription.created":
             case "customer.subscription.updated":
-              await upsertSubscription(event.data.object, env);
+              await upsertSubscription(event.data.object);
               break;
             case "customer.subscription.deleted":
               {

@@ -14,7 +14,7 @@ export const adminGetOverview = createServerFn({ method: 'GET' })
     const [users, keys, totalScans, plans, settings, subscriptions] = await Promise.all([
       supabaseAdmin.from('profiles').select('id, email, full_name, banned, created_at').order('created_at', { ascending: false }).limit(200),
       supabaseAdmin.from('api_keys').select('id, user_id, key_prefix, device_fingerprint, bound_at, last_used_at, revoked_at'),
-      supabaseAdmin.from('scan_logs').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('scan_events').select('event_id', { count: 'exact', head: true }),
       supabaseAdmin.from('plans').select('*').order('sort_order'),
       supabaseAdmin.from('app_settings').select('*'),
       supabaseAdmin
@@ -24,9 +24,9 @@ export const adminGetOverview = createServerFn({ method: 'GET' })
         .order('created_at', { ascending: false }),
     ]);
     const { count: totalScansToday } = await supabaseAdmin
-      .from('scan_logs')
-      .select('id', { count: 'exact', head: true })
-      .gte('scanned_at', new Date(new Date().toISOString().slice(0, 10)).toISOString());
+      .from('scan_events')
+      .select('event_id', { count: 'exact', head: true })
+      .gte('created_at', new Date(new Date().toISOString().slice(0, 10)).toISOString());
     return {
       users: users.data ?? [],
       apiKeys: keys.data ?? [],

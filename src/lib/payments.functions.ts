@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from './stripe.server';
-import type Stripe from 'stripe';
 
 type CheckoutResult = { clientSecret: string } | { error: string };
 
@@ -42,10 +41,9 @@ export const createCheckoutSessionForPlan = createServerFn({ method: 'POST' })
         ui_mode: 'embedded_page',
         return_url: data.returnUrl,
         customer: customerId,
-        managed_payments: { enabled: true },
         metadata: { userId, plan_lookup: data.priceLookupKey },
         ...(price.type === 'recurring' && { subscription_data: { metadata: { userId, plan_lookup: data.priceLookupKey } } }),
-      } as Stripe.Checkout.SessionCreateParams);
+      });
       return { clientSecret: session.client_secret ?? '' };
     } catch (e) {
       return { error: getStripeErrorMessage(e) };
