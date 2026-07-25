@@ -218,6 +218,30 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          scan_id: string | null
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          scan_id?: string | null
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          scan_id?: string | null
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       scan_logs: {
         Row: {
           api_key_id: string | null
@@ -386,11 +410,53 @@ export type Database = {
         }
         Relationships: []
       }
+      user_usage_daily: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          usage_date: string
+          used_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_date?: string
+          used_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_date?: string
+          used_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      consume_scan_quota: {
+        Args: {
+          _event_id?: string
+          _limit: number
+          _scan_id?: string
+          _user_id: string
+          _website_url?: string
+        }
+        Returns: {
+          allowed: boolean
+          duplicate: boolean
+          remaining: number
+          used: number
+        }[]
+      }
       get_today_scan_count: { Args: { _user_id: string }; Returns: number }
       has_role: {
         Args: {

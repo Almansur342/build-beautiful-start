@@ -5,6 +5,8 @@ const authorizationSchema = z.object({
   api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format"),
   device_fingerprint: z.string().trim().min(8).max(200),
   website_url: z.string().trim().max(500).default(""),
+  event_id: z.string().trim().min(8).max(80).optional(),
+  scan_id: z.string().trim().min(8).max(80).optional(),
 });
 
 async function sha256Hex(input: string): Promise<string> {
@@ -45,7 +47,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         if (!parsed.success) {
           return json({ ok: false, reason: "bad_request", message: parsed.error.issues[0]?.message ?? "Invalid activation request." }, { status: 400, origin });
         }
-        const { api_key: apiKey, device_fingerprint: device, website_url: websiteUrl } = parsed.data;
+        const { api_key: apiKey, device_fingerprint: device, website_url: websiteUrl, event_id: eventId, scan_id: scanId } = parsed.data;
 
         const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
         const keyHash = await sha256Hex(apiKey);
@@ -55,7 +57,6 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         if (!keyRow) return json({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
         if (keyRow.revoked_at) return json({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
 
-        // Check ban status
         const { data: profile } = await admin.from("profiles").select("banned").eq("id", keyRow.user_id).maybeSingle();
         if (profile?.banned) return json({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
 
@@ -67,7 +68,7 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           return json({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
 
-        // Determine current plan + limit
+        // Resolve plan + limit
         const { data: sub } = await admin
           .from("subscriptions")
           .select("status, current_period_end, plans(slug, name, daily_scan_limit)")
@@ -97,22 +98,37 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           planLabel = "Free";
         }
 
-        // Count today's scans
-        const { count } = await admin
-          .from("scan_logs")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", keyRow.user_id)
-          .gte("scanned_at", new Date(new Date().toISOString().slice(0, 10)).toISOString());
-        const used = count ?? 0;
+        // Activation checks (empty website_url) never consume quota — return current plan.
+        if (!websiteUrl) {
+          const today = new Date(new Date().toISOString().slice(0, 10)).toISOString();
+          const { count } = await admin
+            .from("scan_logs")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", keyRow.user_id)
+            .gte("scanned_at", today);
+          const used = count ?? 0;
+          await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
+          return json({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used) }, { origin });
+        }
 
-        if (limit != null && used >= limit) {
+        // Atomic quota consumption via RPC. Idempotent when event_id is supplied.
+        const rpcArgs: { _user_id: string; _limit: number; _event_id?: string; _scan_id?: string; _website_url?: string } = {
+          _user_id: keyRow.user_id,
+          _limit: limit ?? 2147483647,
+          _website_url: websiteUrl,
+        };
+        if (eventId) rpcArgs._event_id = eventId;
+        if (scanId) rpcArgs._scan_id = scanId;
+        const { data: rpcRows, error: rpcError } = await admin.rpc("consume_scan_quota", rpcArgs);
+        if (rpcError) return json({ ok: false, reason: "service_error", message: "Could not authorize this scan. Please try again." }, { status: 503, origin });
+        const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+        if (!row?.allowed) {
+          const used = row?.used ?? 0;
           return json({ ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}). Upgrade for more scans.`, remaining: 0, limit, plan: planLabel }, { status: 429, origin });
         }
 
-        // Activation checks use an empty URL and must not consume scan quota.
-        // Also dedupe: skip logging when the same URL was scanned in the last 60s.
-        let logged = false;
-        if (websiteUrl) {
+        // Historical scan_logs preserved for UI (dedup by 60s window). Skipped for idempotent duplicate events.
+        if (!row.duplicate) {
           const sixtySecondsAgo = new Date(Date.now() - 60_000).toISOString();
           const { data: recent } = await admin
             .from("scan_logs")
@@ -123,15 +139,12 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
             .limit(1)
             .maybeSingle();
           if (!recent) {
-            const { error: scanError } = await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
-            if (scanError) return json({ ok: false, reason: "service_error", message: "Could not authorize this scan. Please try again." }, { status: 503, origin });
-            logged = true;
+            await admin.from("scan_logs").insert({ user_id: keyRow.user_id, api_key_id: keyRow.id, website_url: websiteUrl });
           }
         }
-        const { error: usageError } = await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
-        if (usageError) return json({ ok: false, reason: "service_error", message: "Could not complete verification. Please try again." }, { status: 503, origin });
+        await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
 
-        return json({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used - (logged ? 1 : 0)) }, { origin });
+        return json({ ok: true, plan: planLabel, limit, remaining: row.remaining, duplicate: row.duplicate }, { origin });
       },
     },
   },
