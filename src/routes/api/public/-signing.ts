@@ -24,7 +24,7 @@ async function importPrivateKey(): Promise<CryptoKey | null> {
     const pkcs8 = b64ToBytes(b64);
     cachedKey = await crypto.subtle.importKey(
       "pkcs8",
-      pkcs8,
+      pkcs8.buffer.slice(pkcs8.byteOffset, pkcs8.byteOffset + pkcs8.byteLength) as ArrayBuffer,
       { name: "Ed25519" },
       false,
       ["sign"],
