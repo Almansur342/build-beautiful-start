@@ -17,6 +17,7 @@ const DEFAULT_FLUSH_MINUTES = 1               // chrome.alarms minimum in prod i
 
 const LeadLensScanQueue = {
   _flushing: false,
+  _serverCap: null,
   // Every queue read-modify-write in this service-worker instance is serialized.
   _storeChain: Promise.resolve(),
 
@@ -103,6 +104,7 @@ const LeadLensScanQueue = {
         const cfg = await self.LeadLensGate.getRemoteConfig(false)
         if (cfg && Number(cfg.batch_max_events) > 0) cap = Math.min(50, Number(cfg.batch_max_events))
       } catch (_) {}
+      if (Number(this._serverCap) > 0) cap = Math.min(cap, Number(this._serverCap))
 
       if (ready.length === 0) { await this._save(items); return { ok: true, drained: 0, remaining: items.length } }
       const inFlight = ready.slice(0, cap)
@@ -118,6 +120,7 @@ const LeadLensScanQueue = {
       // Delete only events individually acknowledged as stored/duplicate by
       // the authoritative backend. Every other event remains durable locally.
       if (result && result.ok) {
+        if (Number(result.batch_cap) > 0) this._serverCap = Number(result.batch_cap)
         const rows = Array.isArray(result.results) ? result.results : []
         const byId = new Map(rows.map((row) => [row.event_id, row]))
         const retry = []
