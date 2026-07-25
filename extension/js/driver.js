@@ -486,6 +486,12 @@ const Driver = {
       return false
     }
 
+    // Phase 2 security: reject messages that did not originate from this extension.
+    if (!sender || sender.id !== chrome.runtime.id) {
+      if (callback) callback({ error: 'unauthorized-sender' })
+      return !!callback
+    }
+
     if (func !== 'log') {
       Driver.log({ source, func, args })
     }
@@ -500,6 +506,7 @@ const Driver = {
 
       return !!callback
     }
+
 
     // A service-worker startup problem must never freeze Lead Vault requests.
     // Read-only requests can continue with a safe empty cache while startup recovers.
