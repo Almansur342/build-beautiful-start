@@ -2796,18 +2796,20 @@ const Content = {
    * @param {Object} sender
    * @param {Function} callback
    */
-  onMessage({ source, func, args }, sender, callback) {
-    if (!func) {
-      return false
-    }
+  onMessage(rawMessage, sender, callback) {
+    // Phase E: strict envelope validation.
+    const guard = (typeof self !== 'undefined' && self.LeadLensMessageGuard) || null
+    const verdict = guard
+      ? guard.validate(rawMessage, sender, { allowedMethods: Content.ALLOWED_MESSAGE_METHODS, allowTabSender: true })
+      : { ok: !!(sender && sender.id === chrome.runtime.id), source: rawMessage?.source, func: rawMessage?.func, args: rawMessage?.args || [] }
 
-    // Phase 2 security: reject any message not originating from this extension.
-    if (!sender || sender.id !== chrome.runtime.id) {
-      if (callback) callback({ error: 'unauthorized-sender' })
+    if (!verdict.ok) {
+      if (callback) callback({ error: verdict.reason || 'invalid-message' })
       return !!callback
     }
 
-    // Phase 2 security: explicit allowlist. Do not expose arbitrary Content methods.
+    const { source, func, args } = verdict
+
     if (!Content.ALLOWED_MESSAGE_METHODS.has(func) || typeof Content[func] !== 'function') {
       const error = new Error(`Method not allowed: Content.${func}`)
       if (callback) callback({ error: error.message })
