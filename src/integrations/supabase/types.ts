@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -184,6 +184,7 @@ export type Database = {
           daily_scan_limit: number | null
           id: string
           is_active: boolean
+          monthly_scan_limit: number | null
           name: string
           price_usd: number
           slug: string
@@ -196,6 +197,7 @@ export type Database = {
           daily_scan_limit?: number | null
           id?: string
           is_active?: boolean
+          monthly_scan_limit?: number | null
           name: string
           price_usd?: number
           slug: string
@@ -208,6 +210,7 @@ export type Database = {
           daily_scan_limit?: number | null
           id?: string
           is_active?: boolean
+          monthly_scan_limit?: number | null
           name?: string
           price_usd?: number
           slug?: string
@@ -526,6 +529,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_quota_overrides: {
+        Row: {
+          created_at: string
+          daily_scan_limit: number | null
+          monthly_scan_limit: number | null
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_scan_limit?: number | null
+          monthly_scan_limit?: number | null
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_scan_limit?: number | null
+          monthly_scan_limit?: number | null
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -571,6 +601,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_usage_monthly: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          usage_month: string
+          used_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_month?: string
+          used_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_month?: string
+          used_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -588,7 +645,7 @@ export type Database = {
       consume_scan_quota: {
         Args: {
           _event_id?: string
-          _limit?: number | null
+          _limit?: number
           _scan_id?: string
           _scan_mode?: string
           _status?: string
@@ -599,13 +656,13 @@ export type Database = {
           allowed: boolean
           counted: boolean
           duplicate: boolean
-          limit: number | null
-          monthly_limit: number | null
-          monthly_remaining: number | null
+          limit: number
+          monthly_limit: number
+          monthly_remaining: number
           monthly_used: number
           ok: boolean
-          reason: string | null
-          remaining: number | null
+          reason: string
+          remaining: number
           reset_at: string
           used: number
         }[]
@@ -613,8 +670,8 @@ export type Database = {
       get_effective_scan_limits: {
         Args: { _user_id: string }
         Returns: {
-          daily_limit: number | null
-          monthly_limit: number | null
+          daily_limit: number
+          monthly_limit: number
           plan_name: string
           plan_slug: string
           source: string
@@ -762,4 +819,3 @@ export const Constants = {
     },
   },
 } as const
-

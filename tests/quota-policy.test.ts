@@ -25,7 +25,7 @@ describe("plan-aware scan quota contract", () => {
 
   it("does not let API endpoints provide the authoritative scan limit", () => {
     expect(authorize).toContain('admin.rpc("consume_scan_quota"');
-    expect(authorize).toContain("_limit: null");
+    expect(authorize).not.toMatch(/_limit:\s*\d/);
     expect(authorize).toContain("You've reached today's scan limit");
     expect(batch).toContain('admin.rpc("consume_scan_quota"');
     expect(batch).toContain("quotaBlocked = true");
