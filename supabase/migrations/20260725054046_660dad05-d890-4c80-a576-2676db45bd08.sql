@@ -1,0 +1,2 @@
+CREATE POLICY "api_keys insert own" ON public.api_keys FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY "api_keys update own" ON public.api_keys FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
