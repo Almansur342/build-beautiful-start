@@ -45,10 +45,17 @@ try {
 // more reliable than a direct cross-origin request from an extension document
 // and uses the host permissions declared in manifest.json.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || (message.type !== 'qrinuxValidateKey' && message.type !== 'qrinuxStartSession')) return false
+  if (!message || typeof message !== 'object' || !message.type) return false
+  if (message.type !== 'qrinuxValidateKey' && message.type !== 'qrinuxStartSession') return false
 
-  // Phase 2 security: only accept requests from this extension.
-  if (!sender || sender.id !== chrome.runtime.id || sender.tab) {
+  // Phase E: envelope + sender + nonce + top-level type allowlist enforcement.
+  const guard = self.LeadLensMessageGuard
+  const verdict = guard ? guard.validateTopLevel(message, sender) : { ok: !!(sender && sender.id === chrome.runtime.id && !sender.tab) }
+  if (!verdict.ok) {
+    sendResponse({ ok: false, status: 0, data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' } })
+    return false
+  }
+  if (sender && sender.tab) {
     sendResponse({ ok: false, status: 0, data: { reason: 'unauthorized_sender', message: 'This request cannot be verified.' } })
     return false
   }
@@ -61,8 +68,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Phase 3: activation now saves the key + starts a session in one call.
   const runValidation = async () => {
     const payload = message.payload || {}
-    const key = (payload.api_key || '').trim()
-    if (!key) return { ok: false, status: 0, data: { reason: 'bad_request', message: 'API key is required.' } }
+    const key = typeof payload.api_key === 'string' ? payload.api_key.trim() : ''
+    if (!key || key.length > 512) return { ok: false, status: 0, data: { reason: 'bad_request', message: 'API key is required.' } }
     await self.LeadLensGate.setApiKey(key)
     const result = await self.LeadLensGate.verifyKey()
     if (!result.ok) {
