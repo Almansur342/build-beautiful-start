@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as ApiPublicScanSessionRouteImport } from './routes/api/public/scan/session'
 import { Route as ApiPublicScanAuthorizeRouteImport } from './routes/api/public/scan/authorize'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicScanSessionRefreshRouteImport } from './routes/api/public/scan/session.refresh'
 
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
@@ -166,6 +167,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicScanSessionRefreshRoute =
+  ApiPublicScanSessionRefreshRouteImport.update({
+    id: '/refresh',
+    path: '/refresh',
+    getParentRoute: () => ApiPublicScanSessionRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -192,7 +199,8 @@ export interface FileRoutesByFullPath {
   '/legal/terms': typeof LegalTermsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
-  '/api/public/scan/session': typeof ApiPublicScanSessionRoute
+  '/api/public/scan/session': typeof ApiPublicScanSessionRouteWithChildren
+  '/api/public/scan/session/refresh': typeof ApiPublicScanSessionRefreshRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -219,7 +227,8 @@ export interface FileRoutesByTo {
   '/legal/terms': typeof LegalTermsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
-  '/api/public/scan/session': typeof ApiPublicScanSessionRoute
+  '/api/public/scan/session': typeof ApiPublicScanSessionRouteWithChildren
+  '/api/public/scan/session/refresh': typeof ApiPublicScanSessionRefreshRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -248,7 +257,8 @@ export interface FileRoutesById {
   '/legal/terms': typeof LegalTermsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
-  '/api/public/scan/session': typeof ApiPublicScanSessionRoute
+  '/api/public/scan/session': typeof ApiPublicScanSessionRouteWithChildren
+  '/api/public/scan/session/refresh': typeof ApiPublicScanSessionRefreshRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/session'
+    | '/api/public/scan/session/refresh'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/session'
+    | '/api/public/scan/session/refresh'
   id:
     | '__root__'
     | '/'
@@ -333,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/session'
+    | '/api/public/scan/session/refresh'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -348,7 +361,7 @@ export interface RootRouteChildren {
   LegalRoute: typeof LegalRouteWithChildren
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicScanAuthorizeRoute: typeof ApiPublicScanAuthorizeRoute
-  ApiPublicScanSessionRoute: typeof ApiPublicScanSessionRoute
+  ApiPublicScanSessionRoute: typeof ApiPublicScanSessionRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/scan/session/refresh': {
+      id: '/api/public/scan/session/refresh'
+      path: '/refresh'
+      fullPath: '/api/public/scan/session/refresh'
+      preLoaderRoute: typeof ApiPublicScanSessionRefreshRouteImport
+      parentRoute: typeof ApiPublicScanSessionRoute
+    }
   }
 }
 
@@ -589,6 +609,17 @@ const LegalRouteChildren: LegalRouteChildren = {
 
 const LegalRouteWithChildren = LegalRoute._addFileChildren(LegalRouteChildren)
 
+interface ApiPublicScanSessionRouteChildren {
+  ApiPublicScanSessionRefreshRoute: typeof ApiPublicScanSessionRefreshRoute
+}
+
+const ApiPublicScanSessionRouteChildren: ApiPublicScanSessionRouteChildren = {
+  ApiPublicScanSessionRefreshRoute: ApiPublicScanSessionRefreshRoute,
+}
+
+const ApiPublicScanSessionRouteWithChildren =
+  ApiPublicScanSessionRoute._addFileChildren(ApiPublicScanSessionRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -602,7 +633,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalRoute: LegalRouteWithChildren,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicScanAuthorizeRoute: ApiPublicScanAuthorizeRoute,
-  ApiPublicScanSessionRoute: ApiPublicScanSessionRoute,
+  ApiPublicScanSessionRoute: ApiPublicScanSessionRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

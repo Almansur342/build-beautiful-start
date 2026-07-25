@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const authorizationSchema = z.object({
-  api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format"),
+  api_key: z.string().trim().regex(/^qlk_[a-f0-9]{40}$/i, "Invalid API key format").optional(),
+  session_token: z.string().trim().regex(/^qls_[a-f0-9]{64}$/i, "Invalid session token").optional(),
   device_fingerprint: z.string().trim().min(8).max(200),
   website_url: z.string().trim().max(500).default(""),
   event_id: z.string().trim().min(8).max(80).optional(),
