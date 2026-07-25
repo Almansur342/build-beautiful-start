@@ -9,7 +9,7 @@ const schema = z.object({
   user_agent: z.string().trim().max(300).optional(),
 });
 
-const SESSION_TTL_MS = 30 * 60 * 1000; // 30 min
+const SESSION_TTL_MS = 15 * 60 * 1000; // 15 min — short access token TTL (Track 3)
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 async function sha256Hex(input: string): Promise<string> {
