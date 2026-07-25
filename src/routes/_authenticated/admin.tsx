@@ -21,13 +21,12 @@ export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Super Admin — Qrinux LeadLens" }] }),
   validateSearch: (s: Record<string, unknown>): { tab?: AdminTab } => {
     const v = s?.tab as string | undefined;
-    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback"];
+    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback", "settings"];
     return { tab: valid.includes(v as AdminTab) ? (v as AdminTab) : undefined };
   },
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
-    // Server-side gate is still in each fn; this is a UX gate.
   },
   component: AdminPage,
 });
@@ -45,6 +44,7 @@ function AdminPage() {
     refunds: { t: "Refund requests", d: "Review and process customer refunds." },
     support: { t: "Support inbox", d: "Reply to open tickets and mark them resolved." },
     feedback: { t: "Feedback", d: "5-star ratings from your users." },
+    settings: { t: "Remote configuration", d: "Live-toggle scans, batch caps, and the extension notice banner." },
   };
 
   return (
@@ -55,6 +55,7 @@ function AdminPage() {
       {tab === "refunds" && <RefundsTab />}
       {tab === "support" && <AdminSupport />}
       {tab === "feedback" && <FeedbackTab />}
+      {tab === "settings" && <SettingsTab />}
     </AdminShell>
   );
 }
