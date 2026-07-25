@@ -550,14 +550,11 @@ const Driver = {
     }
 
     return new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(
-        tab.id,
-        {
-          source: 'driver.js',
-          func,
-          args: args ? (Array.isArray(args) ? args : [args]) : [],
-        },
-        (response) => {
+      const guard = self.LeadLensMessageGuard
+      const envelope = guard
+        ? guard.envelope('driver.js', func, args)
+        : { source: 'driver.js', func, args: args ? (Array.isArray(args) ? args : [args]) : [] }
+      chrome.tabs.sendMessage(tab.id, envelope, (response) => {
           if (chrome.runtime.lastError) {
             if (func === 'error') return resolve()
             const error = new Error(`${chrome.runtime.lastError.message}: Driver.${func}`)
