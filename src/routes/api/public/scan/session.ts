@@ -57,16 +57,27 @@ export const Route = createFileRoute("/api/public/scan/session")({
 
         const { data: keyRow, error: keyError } = await admin.from("api_keys").select("id, user_id, device_fingerprint, revoked_at").eq("key_hash", keyHash).maybeSingle();
         if (keyError) return jsonResponse({ ok: false, reason: "service_error", message: "Session service is temporarily unavailable." }, { status: 503, origin });
-        if (!keyRow) return jsonResponse({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
-        if (keyRow.revoked_at) return jsonResponse({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
+        if (!keyRow) {
+          logSecurityEvent({ eventType: "session.invalid_key", severity: "warn", ip, device, userAgent: user_agent });
+          return jsonResponse({ ok: false, reason: "invalid_key", message: "Invalid API key. Regenerate one from your dashboard." }, { status: 401, origin });
+        }
+        if (keyRow.revoked_at) {
+          logSecurityEvent({ eventType: "session.revoked_key", severity: "warn", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: user_agent });
+          return jsonResponse({ ok: false, reason: "revoked", message: "This API key has been revoked. Generate a new one." }, { status: 401, origin });
+        }
 
         const { data: profile } = await admin.from("profiles").select("banned").eq("id", keyRow.user_id).maybeSingle();
-        if (profile?.banned) return jsonResponse({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
+        if (profile?.banned) {
+          logSecurityEvent({ eventType: "session.banned", severity: "critical", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: user_agent });
+          return jsonResponse({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
+        }
 
         if (!keyRow.device_fingerprint) {
           const { error: bindError } = await admin.from("api_keys").update({ device_fingerprint: device, bound_at: new Date().toISOString() }).eq("id", keyRow.id);
           if (bindError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not bind this device. Please try again." }, { status: 503, origin });
+          logSecurityEvent({ eventType: "session.device_bound", severity: "info", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: user_agent });
         } else if (keyRow.device_fingerprint !== device) {
+          logSecurityEvent({ eventType: "session.device_mismatch", severity: "critical", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: user_agent });
           return jsonResponse({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
 
