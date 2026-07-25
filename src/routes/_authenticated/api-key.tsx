@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { toast } from "sonner";
 import { generateMyApiKey, listMyApiKeys, resetMyDeviceBinding } from "@/lib/apiKeys.functions";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
@@ -27,11 +28,19 @@ function ApiKeyPage() {
     onSuccess: (r) => {
       setFreshKey(r.plaintext);
       qc.invalidateQueries({ queryKey: ["apiKeys"] });
+      toast.success("API key generated. Copy it now — it won't be shown again.");
+    },
+    onError: (e: any) => {
+      toast.error(`Could not generate API key: ${e?.message || "Unknown error"}`);
     },
   });
   const resetMut = useMutation({
     mutationFn: () => resetDev(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["apiKeys"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["apiKeys"] });
+      toast.success("Device binding reset. Next scan will bind to the new device.");
+    },
+    onError: (e: any) => toast.error(`Reset failed: ${e?.message || "Unknown error"}`),
   });
 
   const activeKey = (keys.data ?? []).find((k) => !k.revoked_at);
