@@ -840,6 +840,24 @@ const Driver = {
    */
   async onContentLoad(url, items, language, requires, categoryRequires) {
     try {
+      // Qrinux LeadLens — log this page scan + enforce daily quota
+      try {
+        if (url && typeof self !== 'undefined' && self.LeadLensGate) {
+          const gate = await self.LeadLensGate.authorize(url)
+          if (!gate.ok) {
+            try {
+              chrome.notifications && chrome.notifications.create({
+                type: 'basic',
+                iconUrl: chrome.runtime.getURL('images/icon_128.png'),
+                title: 'Qrinux LeadLens — scan blocked',
+                message: gate.message || 'Scan blocked. Check your API key or plan.',
+              })
+            } catch (e) {}
+            return
+          }
+        }
+      } catch (e) { /* fail closed */ return }
+
       items.cookies = items.cookies || {}
 
       // Use only page-visible cookies by default. The privileged chrome.cookies
