@@ -58,8 +58,11 @@ function AuthPage() {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setError(null);
-    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/dashboard" });
-    if (result.error) setError(result.error.message ?? "OAuth failed");
+    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
+    if (result.error) { setError(result.error.message ?? "OAuth failed"); return; }
+    // Popup flow: session already set — navigate now.
+    const { data } = await supabase.auth.getUser();
+    if (data.user) navigate({ to: "/dashboard" });
   };
 
   return (
