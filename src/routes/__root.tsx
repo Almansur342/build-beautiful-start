@@ -154,6 +154,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {!hideNav && <PublicNav />}
       <Outlet />
+      <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );
 }
