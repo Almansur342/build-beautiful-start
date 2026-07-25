@@ -286,6 +286,7 @@ const LeadLensGate = {
       limit: result.data.limit,
       remaining: result.data.remaining,
       results: result.data.results || [],
+      batch_cap: Number(result.data.batch_cap || cap),
       dropped: result.data.dropped || 0,
     }
   },

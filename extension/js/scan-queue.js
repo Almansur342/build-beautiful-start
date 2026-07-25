@@ -17,9 +17,7 @@ const DEFAULT_FLUSH_MINUTES = 1               // chrome.alarms minimum in prod i
 
 const LeadLensScanQueue = {
   _flushing: false,
-  // Every queue read-modify-write must be serialized. Bulk scans can finish in
-  // many tabs at once; without this lock, later storage writes overwrite events
-  // that another tab just persisted.
+  // Every queue read-modify-write in this service-worker instance is serialized.
   _storeChain: Promise.resolve(),
 
   _withStoreLock(task) {
@@ -126,6 +124,9 @@ const LeadLensScanQueue = {
         let drained = 0
         for (const item of inFlight) {
           const row = byId.get(item.event_id)
+          // A positive per-event acknowledgement means consume_scan_quota has
+          // durably stored this event_id (or confirmed the same id already
+          // exists). Only then is the local copy removed.
           if (row && row.ok) { drained += 1; continue }
           const reason = row?.reason || 'missing_ack'
           const attempts = Number(item.attempts || 0) + 1

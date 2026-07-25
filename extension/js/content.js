@@ -489,6 +489,13 @@ const Content = {
 
       Content.updateScanButton('Scanned ✓', false)
       scanCompleted = true
+      // Persist the successful scan event in the background queue before the
+      // bulk controller is told to close this tab. Previously reportScanComplete
+      // ran inside scan(), so bulk tabs could be removed while endPageScan was
+      // still writing to chrome.storage.local, losing part of large batches.
+      await Content.driver('endPageScan', [location.href, true])
+      scanStarted = false
+      Content.reportScanComplete(location.href)
       setTimeout(() => Content.updateScanButton('Scan', false), 4000)
       return { ok: true }
     } catch (error) {
@@ -938,7 +945,6 @@ const Content = {
         // Continue
       }
 
-      Content.reportScanComplete(url)
       // Fire-and-forget RDAP lookup so domain age is captured at scan time.
       try {
         const hostname = new URL(url).hostname
