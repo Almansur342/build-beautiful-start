@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
@@ -19,6 +19,12 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 const METHODS = "POST, OPTIONS" as const;
+const QUOTA_MESSAGE = "You've reached today's scan limit. Your limit resets at UTC midnight, or you can upgrade to continue scanning.";
+
+function nextUtcMidnight(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString();
+}
 
 export const Route = createFileRoute("/api/public/scan/authorize")({
   server: {
@@ -42,9 +48,6 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
         const { api_key: apiKey, session_token: sessionToken, device_fingerprint: device, website_url: websiteUrl, event_id: eventId, scan_id: scanId } = parsed.data;
         if (!apiKey && !sessionToken) return jsonResponse({ ok: false, reason: "bad_request", message: "Missing session_token or api_key." }, { status: 400, origin });
 
-        // Multi-dimensional rate-limit: IP + device. User dimension is added
-        // once the caller is authenticated below (before quota consumption).
-        // Fail-closed: authorize is a sensitive mutation.
         const deviceKey = await deviceBucketId(device);
         const rlPre = await checkComposite([
           { key: `authorize:ip:${ip}`, max: RATE_LIMIT_PRESETS.authorize.max, windowSeconds: RATE_LIMIT_PRESETS.authorize.windowSeconds },
@@ -84,7 +87,6 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           keyRow = kRow;
         }
 
-        // Per-user rate-limit dimension (now that we know who the caller is).
         const rlUser = await checkComposite([
           { key: `authorize:user:${keyRow.user_id}`, max: 200, windowSeconds: 60 },
         ], { failClosed: true });
@@ -101,34 +103,18 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
           return jsonResponse({ ok: false, reason: "device_mismatch", message: "This API key is locked to another device. Reset device binding from your dashboard." }, { status: 403, origin });
         }
 
-        const { data: sub } = await admin
-          .from("subscriptions")
-          .select("status, current_period_end, plans(slug, name, daily_scan_limit)")
-          .eq("user_id", keyRow.user_id)
-          .in("status", ["active", "trialing", "past_due"])
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const active = sub && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
-        const plan = active ? (sub.plans as any) : null;
-
         const { data: settings } = await admin.from("app_settings").select("key, value");
         const map: Record<string, any> = {};
         for (const s of settings ?? []) map[s.key] = s.value;
-        const freeEnabled = map.free_tier_enabled !== false;
-        const freeLimit = Number(map.free_daily_limit ?? 100);
-
-        let limit: number | null;
-        let planLabel: string;
-        if (plan) {
-          limit = plan.daily_scan_limit;
-          planLabel = plan.name;
-        } else {
-          if (!freeEnabled) return jsonResponse({ ok: false, reason: "no_plan", message: "Free tier is disabled. Please upgrade in your dashboard." }, { status: 402, origin });
-          limit = freeLimit;
-          planLabel = "Free";
+        if (map.scan_disabled === true) {
+          return jsonResponse({ ok: false, reason: "scan_disabled", message: "Scanning is temporarily paused. Please try again shortly." }, { status: 503, origin });
         }
+
+        const { data: planRows } = await admin.rpc("get_effective_scan_limits", { _user_id: keyRow.user_id });
+        const planRow = Array.isArray(planRows) ? planRows[0] : planRows;
+        const planLabel = String(planRow?.plan_name ?? "Free");
+        const rawLimit = planRow?.daily_limit;
+        const limit = rawLimit == null ? null : Number(rawLimit);
 
         if (!websiteUrl) {
           const today = new Date().toISOString().slice(0, 10);
@@ -139,30 +125,36 @@ export const Route = createFileRoute("/api/public/scan/authorize")({
             .eq("usage_date", today)
             .maybeSingle();
           const used = usage?.used_count ?? 0;
+          const resetAt = nextUtcMidnight();
           await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
-          return jsonResponse({ ok: true, plan: planLabel, limit, remaining: limit == null ? null : Math.max(0, limit - used) }, { origin });
+          if (limit != null && used >= limit) {
+            return jsonResponse({ ok: false, reason: "quota_exceeded", message: QUOTA_MESSAGE, used, limit, remaining: 0, reset_at: resetAt, plan: planLabel }, { status: 429, origin });
+          }
+          return jsonResponse({ ok: true, plan: planLabel, used, limit, remaining: limit == null ? null : Math.max(0, limit - used), reset_at: resetAt }, { origin });
         }
 
-        const rpcArgs: { _user_id: string; _limit: number; _event_id?: string; _scan_id?: string; _website_url?: string } = {
+        const rpcArgs: { _user_id: string; _limit?: number | null; _event_id?: string; _scan_id?: string; _website_url?: string; _status?: string } = {
           _user_id: keyRow.user_id,
-          _limit: limit ?? 2147483647,
+          _limit: null,
           _website_url: websiteUrl,
+          _status: "counted",
         };
         if (eventId) rpcArgs._event_id = eventId;
         if (scanId) rpcArgs._scan_id = scanId;
         const { data: rpcRows, error: rpcError } = await admin.rpc("consume_scan_quota", rpcArgs);
         if (rpcError) return jsonResponse({ ok: false, reason: "service_error", message: "Could not authorize this scan. Please try again." }, { status: 503, origin });
         const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
-        if (!row?.allowed) {
+        if (!row?.ok && !row?.allowed) {
           const used = row?.used ?? 0;
-          logSecurityEvent({ eventType: "authorize.quota_exceeded", severity: "warn", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: request.headers.get("user-agent") ?? undefined, metadata: { used, limit, plan: planLabel } });
-          return jsonResponse({ ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}). Upgrade for more scans.`, remaining: 0, limit, plan: planLabel }, { status: 429, origin });
+          logSecurityEvent({ eventType: "authorize.quota_exceeded", severity: "warn", userId: keyRow.user_id, apiKeyId: keyRow.id, ip, device, userAgent: request.headers.get("user-agent") ?? undefined, metadata: { used, limit: row?.limit ?? limit, plan: planLabel } });
+          return jsonResponse({ ok: false, reason: row?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used, limit: row?.limit ?? limit, remaining: 0, reset_at: row?.reset_at, plan: planLabel }, { status: 429, origin });
         }
 
         await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
 
-        return jsonResponse({ ok: true, plan: planLabel, limit, remaining: row.remaining, duplicate: row.duplicate }, { origin });
+        return jsonResponse({ ok: true, counted: !!row.counted, used: row.used, plan: planLabel, limit: row.limit ?? limit, remaining: row.remaining, reset_at: row.reset_at, duplicate: row.duplicate }, { origin });
       },
     },
   },
 });
+

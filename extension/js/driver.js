@@ -1,4 +1,4 @@
-'use strict'
+﻿'use strict'
 /* eslint-env browser */
 /* globals chrome, Wappalyzer, Utils, LeadLensBlacklist, LeadLensIntelligence */
 
@@ -367,7 +367,7 @@ const Driver = {
   },
 
   /**
-   * Wrapper for analyze — the per-page scan gate lives in onContentLoad,
+   * Wrapper for analyze â€” the per-page scan gate lives in onContentLoad,
    * which is the single entry point per website with a real URL. Calling
    * authorize() here would fire for every partial detection (headers, xhr,
    * scripts) with an object arg, log "[object Object]" as website_url, and
@@ -653,10 +653,28 @@ const Driver = {
       }
     }
 
-    return { ok: true, status: 'browser-database' }
+    if (!self.LeadLensGate || typeof self.LeadLensGate.authorize !== 'function') {
+      return { ok: false, status: 'quota-check-unavailable', message: 'Qrinux scan authorization is unavailable. Try again shortly.' }
+    }
+
+    const quota = await self.LeadLensGate.authorize('', { checkOnly: true })
+    if (!quota?.ok) {
+      return {
+        ok: false,
+        status: quota?.reason || 'quota-check-failed',
+        message: quota?.message || 'Scan authorization failed. Try again shortly.',
+        remaining: quota?.remaining,
+        reset_at: quota?.reset_at,
+      }
+    }
+
+    return { ok: true, status: 'browser-database', remaining: quota.remaining, limit: quota.limit, reset_at: quota.reset_at }
   },
 
   async beginPageScan(url) {
+    const allowed = await Driver.canStartPageScan(url)
+    if (!allowed?.ok) return allowed
+
     const hostname = Driver.normaliseScanHostname(url)
     const scanKey = String(url || '').split('#')[0].slice(0, 500)
 
@@ -1585,7 +1603,7 @@ const Driver = {
 
   async fetchDomainAgeFromRdap(rootDomain, host, scanStatus = '') {
     const checkedAt = new Date().toISOString()
-    // Provider chain: rdap.org → IANA bootstrap → registry fallback.
+    // Provider chain: rdap.org â†’ IANA bootstrap â†’ registry fallback.
     // Each provider is tried in order with its own timeout. First success wins.
     const providers = [
       `https://rdap.org/domain/${encodeURIComponent(rootDomain)}`,
@@ -1608,7 +1626,7 @@ const Driver = {
         })
         clearTimeout(timeout)
         lastStatus = candidate.status
-        // 200 = use this provider. 404/410 = definitive "not registered" — stop trying.
+        // 200 = use this provider. 404/410 = definitive "not registered" â€” stop trying.
         if (candidate.ok || candidate.status === 404 || candidate.status === 410) {
           response = candidate
           break
@@ -3089,3 +3107,5 @@ Utils.withTimeout(Driver.init(), 14000, 'LeadLens background initialization time
   Driver.cache = Driver.cache || { hostnames: {}, robots: {}, ads: [] }
   settleDriverInit()
 })
+
+

@@ -1,8 +1,8 @@
-'use strict'
+﻿'use strict'
 /* globals chrome */
-// Qrinux LeadLens — API key + session gate (v1.8.0)
+// Qrinux LeadLens â€” API key + session gate (v1.8.0)
 // Phase 4: adds a lightweight local batch queue, remote-config fetcher,
-// and a scan_disabled kill-switch — while keeping single-scan authorize
+// and a scan_disabled kill-switch â€” while keeping single-scan authorize
 // as the default path used by driver.js.
 
 const LEADLENS_API_BASES = [
@@ -215,7 +215,7 @@ const LeadLensGate = {
     const apiKey = await this.getApiKey()
     if (!apiKey) return { ok: false, reason: 'no_api_key', message: 'API key required. Open the extension options and paste your API key from your Qrinux LeadLens dashboard.' }
 
-    // Kill-switch from remote config — checked opportunistically, non-fatal on fetch failure.
+    // Kill-switch from remote config â€” checked opportunistically, non-fatal on fetch failure.
     try {
       const cfg = await this.getRemoteConfig(false)
       if (cfg && cfg.scan_disabled === true) {
@@ -236,14 +236,14 @@ const LeadLensGate = {
       const result = await this._fetchJson('/api/public/scan/authorize', payload)
       const data = result.data || {}
       if (result.ok) {
-        return { ok: true, remaining: data.remaining, limit: data.limit, plan: data.plan, duplicate: !!data.duplicate }
+        return { ok: true, counted: !!data.counted, used: data.used, remaining: data.remaining, limit: data.limit, plan: data.plan, reset_at: data.reset_at, duplicate: !!data.duplicate }
       }
       if (session && ['session_invalid', 'session_expired', 'session_revoked'].includes(data.reason) && attempt === 0) {
         await this._clearSession()
         session = await this._ensureSession()
         if (session) continue
       }
-      return { ok: false, reason: data.reason || 'denied', message: data.message || 'Scan denied.', remaining: data.remaining }
+      return { ok: false, reason: data.reason || 'denied', message: data.message || 'Scan denied.', used: data.used, remaining: data.remaining, limit: data.limit, reset_at: data.reset_at }
     }
     return { ok: false, reason: 'denied', message: 'Scan denied.' }
   },
@@ -278,7 +278,7 @@ const LeadLensGate = {
     })
     if (!result.ok) {
       const data = result.data || {}
-      return { ok: false, reason: data.reason || 'denied', message: data.message || 'Batch denied.' }
+      return { ok: false, reason: data.reason || 'denied', message: data.message || 'Batch denied.', retry_after: data.retry_after, reset_at: data.reset_at }
     }
     return {
       ok: true,
@@ -288,8 +288,10 @@ const LeadLensGate = {
       results: result.data.results || [],
       batch_cap: Number(result.data.batch_cap || cap),
       dropped: result.data.dropped || 0,
+      summary: result.data.summary || null,
     }
   },
 }
 
 self.LeadLensGate = LeadLensGate
+

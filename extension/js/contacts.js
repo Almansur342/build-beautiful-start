@@ -1,4 +1,4 @@
-'use strict'
+﻿'use strict'
 /* globals Utils, chrome */
 
 const { getOption, setOption, sendMessage } = Utils
@@ -828,7 +828,7 @@ const Contacts = {
       panel.dataset.level = level
       meter.style.width = `${Math.min(100, Math.max(0, stats.percent))}%`
       percentLabel.textContent = `${stats.percent}%`
-      details.textContent = `${sites} saved website${sites === 1 ? '' : 's'} · Lead database ${databaseBytes} · Settings ${settingsBytes} · Available quota ${quota}`
+      details.textContent = `${sites} saved website${sites === 1 ? '' : 's'} Â· Lead database ${databaseBytes} Â· Settings ${settingsBytes} Â· Available quota ${quota}`
 
       if (level === 'critical') {
         status.textContent = `Storage is almost full: ${usage} used. Download a backup and delete old leads before scanning a large batch.`
@@ -1182,7 +1182,7 @@ const Contacts = {
             <h3>Manage this website</h3>
             <p class="cf-muted">Update your CRM stage, follow-up, manual industry or country, tags, and notes without scrolling through the full evidence.</p>
           </div>
-          <span class="cf-auto-hint">Rule-based defaults · manual edits win</span>
+          <span class="cf-auto-hint">Rule-based defaults Â· manual edits win</span>
         </div>
         ${Contacts.renderLeadMeta(site)}
       </section>
@@ -1502,7 +1502,7 @@ const Contacts = {
       schema: schemaTypes.length ? `${schemaTypes.length} schema type${schemaTypes.length === 1 ? '' : 's'}` : 'Schema not found',
       images: altCoverage === null ? 'No image sample' : `${altCoverage}% image alt coverage`,
       local: `${localSignals}/4 local SEO signals`,
-      speed: `${speed.label}${speed.ms ? ` · ${speed.ms} ms` : ''}`,
+      speed: `${speed.label}${speed.ms ? ` Â· ${speed.ms} ms` : ''}`,
     }
   },
 
@@ -1520,7 +1520,7 @@ const Contacts = {
         <strong>${Contacts.esc(best.value)}</strong>
         <em>${Contacts.esc(confidence.label)} rule-based quality (${Contacts.esc(confidence.score)}/100)</em>
         <small>${Contacts.esc(Contacts.emailRoleIntent(best).label)} - ${Contacts.esc(confidence.reasons.slice(0, 3).join(', '))}</small>
-        <small><strong>Contact-path quality: ${Contacts.esc(outreachProfile.label)} (${Contacts.esc(outreachProfile.score)}/100)</strong> · ${Contacts.esc(outreachProfile.note)}</small>
+        <small><strong>Contact-path quality: ${Contacts.esc(outreachProfile.label)} (${Contacts.esc(outreachProfile.score)}/100)</strong> Â· ${Contacts.esc(outreachProfile.note)}</small>
       </div>
     `
   },
@@ -1637,20 +1637,20 @@ const Contacts = {
         <div class="cf-verified-evidence-grid">
           <article class="cf-verified-evidence-card">
             <span>Evidence coverage</span>
-            <strong>${Contacts.esc(coverage.label || 'Not measured')} · ${Contacts.esc(coverageScore)}</strong>
+            <strong>${Contacts.esc(coverage.label || 'Not measured')} Â· ${Contacts.esc(coverageScore)}</strong>
             <small>${Contacts.esc(coverage.note || 'Coverage describes how much evidence was captured, not whether the website is a good prospect.')}</small>
             ${coverageMissing.length ? `<em>Not captured: ${Contacts.esc(coverageMissing.join(', '))}</em>` : ''}
           </article>
           <article class="cf-verified-evidence-card">
             <span>Main readable content</span>
             <strong>${Contacts.esc(mainTitle || 'Title not captured')}</strong>
-            <small>${Contacts.esc(`${Number(mainContent.wordCount || 0)} words · ${mainContent.source || 'unknown source'}`)}</small>
+            <small>${Contacts.esc(`${Number(mainContent.wordCount || 0)} words Â· ${mainContent.source || 'unknown source'}`)}</small>
             ${mainExcerpt ? `<p>${Contacts.esc(mainExcerpt)}</p>` : '<em>No readable excerpt captured.</em>'}
           </article>
           <article class="cf-verified-evidence-card">
             <span>Accessibility preflight</span>
             <strong>${Contacts.esc(`${Number(accessibility.issueCount || 0)} detected issue${Number(accessibility.issueCount || 0) === 1 ? '' : 's'}`)}</strong>
-            <small>${Contacts.esc(accessibility.engine || 'Not run')} · automated preflight only</small>
+            <small>${Contacts.esc(accessibility.engine || 'Not run')} Â· automated preflight only</small>
             ${accessibilityIssues.length ? `<ul>${accessibilityIssues.map((issue) => `<li>${Contacts.esc(`${issue.description || issue.id}: ${issue.count || 0}`)}</li>`).join('')}</ul>` : '<em>No issue was detected by the available automated checks.</em>'}
           </article>
           <article class="cf-verified-evidence-card">
@@ -1706,7 +1706,7 @@ const Contacts = {
         <strong>${Contacts.esc(item.title || item.id || 'Website review')}</strong>
         <p>${Contacts.esc(item.reason || '')}</p>
         ${Contacts.toArray(item.evidence).length ? `<ul>${Contacts.toArray(item.evidence).slice(0, 4).map((e) => `<li>${Contacts.esc(e)}</li>`).join('')}</ul>` : ''}
-        <small>${Contacts.esc(item.confidence || 'Low')} confidence · ${Contacts.esc(item.direction || '')}</small>
+        <small>${Contacts.esc(item.confidence || 'Low')} confidence Â· ${Contacts.esc(item.direction || '')}</small>
       </article>
     `).join('')
     return `
@@ -1714,13 +1714,13 @@ const Contacts = {
         <h3>Business profile and outreach strategy</h3>
         <p class="cf-signal-note">Best-supported local estimates from captured evidence. Verify the company context before sending outreach; these are not external enrichment claims.</p>
         <div class="cf-pitch-grid">
-          <div class="cf-pitch-card"><span>Most likely business type</span><strong>${Contacts.esc(business.label)}</strong><small>${Contacts.esc(`${business.confidence} confidence · ${(business.reasons || []).slice(0, 3).join(', ')}`)}</small></div>
-          <div class="cf-pitch-card"><span>Estimated company size</span><strong>${Contacts.esc(size.label)}</strong><small>${Contacts.esc(`${size.confidence || 'Low'} confidence · exact employee count is not claimed`)}</small></div>
+          <div class="cf-pitch-card"><span>Most likely business type</span><strong>${Contacts.esc(business.label)}</strong><small>${Contacts.esc(`${business.confidence} confidence Â· ${(business.reasons || []).slice(0, 3).join(', ')}`)}</small></div>
+          <div class="cf-pitch-card"><span>Estimated company size</span><strong>${Contacts.esc(size.label)}</strong><small>${Contacts.esc(`${size.confidence || 'Low'} confidence Â· exact employee count is not claimed`)}</small></div>
           <div class="cf-pitch-card"><span>Recommended approach</span><strong>${Contacts.esc(business.approach || strategy.angle)}</strong><small>${Contacts.esc(strategy.tone)}</small></div>
           <div class="cf-pitch-card"><span>Best available channel</span><strong>${Contacts.esc(strategy.channel)}</strong><small>${Contacts.esc(channels[0]?.reason || 'Use the clearest verified contact path.')}</small></div>
-          <div class="cf-pitch-card"><span>Location evidence</span><strong>${Contacts.esc(market.label)}</strong><small>${Contacts.esc(`${market.confidence} confidence · ${market.reasons.join(', ')}`)}</small></div>
+          <div class="cf-pitch-card"><span>Location evidence</span><strong>${Contacts.esc(market.label)}</strong><small>${Contacts.esc(`${market.confidence} confidence Â· ${market.reasons.join(', ')}`)}</small></div>
           <div class="cf-pitch-card"><span>Evidence confidence</span><strong>${Contacts.esc(`${decision.label} (${decision.score}/100)`)}</strong><small>${Contacts.esc(decision.reasons.slice(0, 3).join(', ') || 'Core signals captured')}</small></div>
-          <div class="cf-pitch-card"><span>Contact readiness</span><strong>${Contacts.esc(`${readiness.score}/100 · ${readiness.label}`)}</strong><small>${Contacts.esc(readiness.reasons.slice(0, 3).join(', ') || 'Review captured contact paths.')}</small></div>
+          <div class="cf-pitch-card"><span>Contact readiness</span><strong>${Contacts.esc(`${readiness.score}/100 Â· ${readiness.label}`)}</strong><small>${Contacts.esc(readiness.reasons.slice(0, 3).join(', ') || 'Review captured contact paths.')}</small></div>
           <div class="cf-pitch-card"><span>Page-context caution</span><strong>${Contacts.esc(warning ? 'Use caution' : 'Usable context')}</strong><small>${Contacts.esc(warning || 'Normal business-page context was captured.')}</small></div>
           <div class="cf-pitch-card"><span>Report consistency</span><strong>${Contacts.esc(conflicts.length ? 'Check conflicts' : 'No conflict detected')}</strong><small>${Contacts.esc(conflicts.join(', ') || duplicate || 'Captured evidence is internally consistent.')}</small></div>
         </div>
@@ -1987,24 +1987,24 @@ const Contacts = {
     const infra = audit.seoInfrastructure || {}
     const missingAlt = Math.max(0, Number(audit.images || 0) - Number(audit.imagesWithAlt || 0))
     const headingSummary = evidence.headingSummary
-      ? Object.entries(evidence.headingSummary).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' · ')
-      : `${audit.h1Count || 0} H1 · ${audit.headingCount || 0} headings`
+      ? Object.entries(evidence.headingSummary).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(' Â· ')
+      : `${audit.h1Count || 0} H1 Â· ${audit.headingCount || 0} headings`
     const robotsStatus = infra.robotsTxt?.checked
       ? `${infra.robotsTxt.found ? 'Found' : 'Not found'}${infra.robotsTxt.status ? ` (${infra.robotsTxt.status})` : ''}`
       : 'Not checked'
     const sitemapStatus = infra.sitemap?.checked
-      ? `${infra.sitemap.found ? 'Found' : 'Not found'}${infra.sitemap.urlCount ? ` · ${infra.sitemap.urlCount} URLs` : ''}`
+      ? `${infra.sitemap.found ? 'Found' : 'Not found'}${infra.sitemap.urlCount ? ` Â· ${infra.sitemap.urlCount} URLs` : ''}`
       : 'Not checked'
     const cards = [
       ['Title', evidence.title || audit.title || 'Not found', `${evidence.titleLength ?? String(evidence.title || audit.title || '').length} chars`],
       ['Meta description', evidence.description || 'Not found', `${evidence.descriptionLength ?? audit.descriptionLength ?? 0} chars`],
       ['Headings', headingSummary, Contacts.toArray(evidence.h1Texts).slice(0, 2).join(' | ')],
-      ['Images', `${audit.images || 0} total · ${missingAlt} missing alt`, `${audit.brokenImages || 0} broken`],
-      ['Links', `${audit.internalLinks || 0} internal · ${audit.externalLinks || 0} external`, `${audit.emptyLinks || 0} placeholder`],
+      ['Images', `${audit.images || 0} total Â· ${missingAlt} missing alt`, `${audit.brokenImages || 0} broken`],
+      ['Links', `${audit.internalLinks || 0} internal Â· ${audit.externalLinks || 0} external`, `${audit.emptyLinks || 0} placeholder`],
       ['Schema', Contacts.toArray(audit.schemaTypes || evidence.schemaTypes).join(', ') || 'Not found', `${audit.jsonLdCount || 0} JSON-LD blocks`],
       ['Robots.txt', robotsStatus, Contacts.toArray(infra.robotsTxt?.sitemapUrls).slice(0, 2).join(' | ')],
       ['Sitemap', sitemapStatus, infra.sitemap?.url || ''],
-      ['Local performance', `FCP ${audit.firstContentfulPaint || evidence.firstContentfulPaint || 0}ms · LCP ${audit.largestContentfulPaint || evidence.largestContentfulPaint || 0}ms`, `CLS ${audit.cumulativeLayoutShift ?? evidence.cumulativeLayoutShift ?? 0}`],
+      ['Local performance', `FCP ${audit.firstContentfulPaint || evidence.firstContentfulPaint || 0}ms Â· LCP ${audit.largestContentfulPaint || evidence.largestContentfulPaint || 0}ms`, `CLS ${audit.cumulativeLayoutShift ?? evidence.cumulativeLayoutShift ?? 0}`],
       ['Raw text', evidence.pageTextPreview ? `${evidence.pageTextPreview.length} chars preview saved` : 'Not saved', 'Used for proof only'],
     ]
 
@@ -2555,22 +2555,22 @@ const Contacts = {
       jump.className = 'cf-pagination__jump'
       jump.appendChild(document.createTextNode('Page '))
 
-      controls.appendChild(makeButton('«', 1, Contacts.page === 1, false, 'First page'))
-      controls.appendChild(makeButton('‹', Contacts.page - 1, Contacts.page === 1, false, 'Previous page'))
+      controls.appendChild(makeButton('Â«', 1, Contacts.page === 1, false, 'First page'))
+      controls.appendChild(makeButton('â€¹', Contacts.page - 1, Contacts.page === 1, false, 'Previous page'))
 
       Contacts.visiblePages(totalPages).forEach((page) => {
         if (page === 'gap') {
           const gap = document.createElement('span')
           gap.className = 'cf-page-gap'
-          gap.textContent = '…'
+          gap.textContent = 'â€¦'
           controls.appendChild(gap)
         } else {
           controls.appendChild(makeButton(String(page), page, false, page === Contacts.page, `Page ${page}`))
         }
       })
 
-      controls.appendChild(makeButton('›', Contacts.page + 1, Contacts.page === totalPages, false, 'Next page'))
-      controls.appendChild(makeButton('»', totalPages, Contacts.page === totalPages, false, 'Last page'))
+      controls.appendChild(makeButton('â€º', Contacts.page + 1, Contacts.page === totalPages, false, 'Next page'))
+      controls.appendChild(makeButton('Â»', totalPages, Contacts.page === totalPages, false, 'Last page'))
 
       pageInput.className = 'cf-page-input'
       pageInput.type = 'number'
@@ -3496,7 +3496,7 @@ ${Contacts.aiPromptForSite(site)}`)
 
       textarea.remove()
 
-      finish(ok ? 'Copied' : 'Copy failed — use Export XLSX when you need a file')
+      finish(ok ? 'Copied' : 'Copy failed â€” use Export XLSX when you need a file')
     }
 
     if (!text) {
@@ -3613,11 +3613,11 @@ ${Contacts.aiPromptForSite(site)}`)
   showToast(message, type = 'success') {
     const region = Contacts.ensureToastRegion()
     const toast = document.createElement('div')
-    const symbols = { success: '✓', error: '!', info: 'i' }
+    const symbols = { success: 'âœ“', error: '!', info: 'i' }
 
     toast.className = `cf-toast cf-toast--${type}`
     toast.innerHTML = `
-      <span class="cf-toast__icon" aria-hidden="true">${symbols[type] || '✓'}</span>
+      <span class="cf-toast__icon" aria-hidden="true">${symbols[type] || 'âœ“'}</span>
       <span class="cf-toast__message">${Contacts.esc(message)}</span>
       <span class="cf-toast__progress" aria-hidden="true"></span>
     `
@@ -4700,7 +4700,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       textarea.dataset.largeQueue = largeQueue ? 'true' : 'false'
     }
     if (counter) {
-      counter.textContent = `${urls.length.toLocaleString()} unique website${urls.length === 1 ? '' : 's'} queued${largeQueue ? ' · Large queue will scan gradually' : ''}`
+      counter.textContent = `${urls.length.toLocaleString()} unique website${urls.length === 1 ? '' : 's'} queued${largeQueue ? ' Â· Large queue will scan gradually' : ''}`
       counter.dataset.level = largeQueue ? 'warning' : 'good'
     }
     return { count: urls.length, largeQueue, urls }
@@ -5014,7 +5014,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     }, Math.max(120, Number(delay || 0), cooldown))
   },
 
-  bulkPump() {
+  async bulkPump() {
     if (Contacts.bulkCooldownRemaining() > 0) {
       Contacts.scheduleBulkPump(Contacts.bulkCooldownRemaining())
       return
@@ -5057,10 +5057,17 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       Contacts.updateBulkProgress()
       Contacts.renderBulkSummary()
       if (status) {
-        status.textContent = `Opening ${Contacts.bulkRunning.size} tab${Contacts.bulkRunning.size === 1 ? '' : 's'} · Remaining ${Contacts.bulkQueue.length}`
+        status.textContent = `Opening ${Contacts.bulkRunning.size} tab${Contacts.bulkRunning.size === 1 ? '' : 's'} Â· Remaining ${Contacts.bulkQueue.length}`
       }
-
-      sendMessage('contacts.js', 'beginPageScan', [url, 'bulk']).catch(() => {})
+      const begin = await sendMessage('contacts.js', 'beginPageScan', [url, 'bulk']).catch((error) => ({ ok: false, status: 'quota-check-failed', message: String(error?.message || error) }))
+      if (!begin?.ok && begin !== true) {
+        Contacts.bulkRunning.delete(pendingKey)
+        const reason = begin?.status === 'quota_exceeded' ? 'quota-blocked' : (begin?.status || 'blocked')
+        Contacts.bulkDone.add(url)
+        await Contacts.recordBulkResult(url, reason, begin?.message || '')
+        Contacts.scheduleBulkPump()
+        return
+      }
 
       chrome.tabs.create({ active: false, url }, (tab) => {
         Contacts.bulkRunning.delete(pendingKey)
@@ -5090,7 +5097,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
           ),
         })
         if (status) {
-          status.textContent = `Scanning ${Contacts.bulkRunning.size} website${Contacts.bulkRunning.size === 1 ? '' : 's'} · Remaining ${Contacts.bulkQueue.length}`
+          status.textContent = `Scanning ${Contacts.bulkRunning.size} website${Contacts.bulkRunning.size === 1 ? '' : 's'} Â· Remaining ${Contacts.bulkQueue.length}`
         }
         Contacts.updateBulkProgress()
         Contacts.renderBulkSummary()
@@ -5338,7 +5345,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     const status = document.getElementById('bulk-import-status')
 
     if (status) {
-      status.textContent = `Finished ${Contacts.bulkReasonLabel(reason)} · Remaining ${Contacts.bulkQueue.length}`
+      status.textContent = `Finished ${Contacts.bulkReasonLabel(reason)} Â· Remaining ${Contacts.bulkQueue.length}`
     }
     Contacts.updateBulkProgress()
     Contacts.renderBulkSummary()
@@ -5362,6 +5369,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       timeout: Math.max(0, Number(stats.timeout || 0)),
       error: Math.max(0, Number(stats.error || 0)),
       skipped: Math.max(0, Number(stats.skipped || 0)),
+      quotaBlocked: Math.max(0, Number(stats.quotaBlocked || stats.quota_blocked || 0)),
     }
   },
 
@@ -5369,6 +5377,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     const value = String(reason || '')
     if (value === 'ok') return 'scanned'
     if (value === 'skipped-enterprise') return 'skipped'
+    if (value === 'quota-blocked' || /quota[_-]blocked/i.test(value)) return 'quotaBlocked'
     if (/blocked|challenge/i.test(value)) return 'blocked'
     if (/timeout/i.test(value)) return 'timeout'
     return 'error'
@@ -5443,9 +5452,9 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
 
     if (bar) bar.style.width = `${percent}%`
     if (progress) progress.textContent = Contacts.bulkPaused
-      ? `Paused · ${done}/${total || 0}`
+      ? `Paused Â· ${done}/${total || 0}`
       : active
-        ? `${done}/${total || 0} · ${active} active`
+        ? `${done}/${total || 0} Â· ${active} active`
         : `${percent}%`
 
     const textarea = document.getElementById('bulk-urls')
@@ -5476,6 +5485,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       <span class="cf-bulk-summary__item">Timeout ${grouped.timeout}</span>
       <span class="cf-bulk-summary__item">Error ${grouped.error}</span>
       <span class="cf-bulk-summary__item">Skipped ${grouped.skipped}</span>
+      <span class="cf-bulk-summary__item">Quota blocked ${grouped.quotaBlocked}</span>
       <span class="cf-bulk-summary__item">Active-tab limit ${Contacts.bulkMaxConcurrent}</span>
       <span class="cf-bulk-summary__item">Checkpoint every ${Contacts.bulkCheckpointEvery}</span>
       <span class="cf-bulk-summary__item">Focus rotation ${Contacts.bulkFocusRotationEnabled ? 'on' : 'off'}</span>
@@ -5520,6 +5530,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
       'scan-timeout': 'Loaded but no scan result',
       timeout: 'Timeout',
       'skipped-enterprise': 'Skipped by guard',
+      'quota-blocked': 'Quota blocked',
     }
 
     return labels[reason] || reason
@@ -6194,7 +6205,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     const normalised = manual || inferred
 
     if (!normalised) return 'Unassigned'
-    if (normalised === 'MULTI') return '🌐 Multiple markets'
+    if (normalised === 'MULTI') return 'ðŸŒ Multiple markets'
 
     const label = Contacts.countryLabel(normalised)
 
@@ -7479,7 +7490,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     const sample = urls.slice(0, 3).join(', ')
     const more = matches.length > 3 ? ` +${matches.length - 3} more` : ''
 
-    return `Duplicate candidate: ${matches.length} other scan(s) with ${label}${sample ? ` — ${sample}${more}` : ''}. Keep the best full scan and ignore timeout/challenge duplicates.`
+    return `Duplicate candidate: ${matches.length} other scan(s) with ${label}${sample ? ` â€” ${sample}${more}` : ''}. Keep the best full scan and ignore timeout/challenge duplicates.`
   },
 
   localSeoPromptLine(site, seoAudit, expectations) {
@@ -9008,7 +9019,7 @@ ${sharedStrings.map((value) => `<si><t>${Contacts.xmlEsc(value)}</t></si>`).join
     ]
     const exact = known.find(([domain]) => host === Contacts.rootDomain(domain) || fullHost === domain || fullHost.endsWith(`.${domain}`))
     const university = /\b(university|polytechnic|public\s+college|college\s+of\s+applied\s+arts)\b/i.test(text)
-    const nationalNonprofit = /\b(national\s+(?:charity|foundation|nonprofit)|children['’]?s\s+charity|canadian\s+red\s+cross|unicef\s+canada|food\s+banks?\s+canada|habitat\s+for\s+humanity\s+canada|heart\s+(?:and|&)\s+stroke|diabetes\s+canada|cancer\s+society)\b/i.test(text)
+    const nationalNonprofit = /\b(national\s+(?:charity|foundation|nonprofit)|children['â€™]?s\s+charity|canadian\s+red\s+cross|unicef\s+canada|food\s+banks?\s+canada|habitat\s+for\s+humanity\s+canada|heart\s+(?:and|&)\s+stroke|diabetes\s+canada|cancer\s+society)\b/i.test(text)
     const matched = Boolean(exact) || university || nationalNonprofit
     return {
       matched,
@@ -10062,3 +10073,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Utils.withTimeout(Contacts.init(), 18000, 'Lead Vault initialization timed out')
     .catch((error) => Contacts.handleInitFailure(error))
 })
+
+
+
+

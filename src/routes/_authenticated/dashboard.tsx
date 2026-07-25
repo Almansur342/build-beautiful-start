@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyDashboardData } from "@/lib/dashboard.functions";
@@ -9,7 +9,7 @@ import { Activity, Globe, TrendingUp, Zap, ArrowRight, CheckCircle2 } from "luci
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Overview — Qrinux LeadLens" },
+      { title: "Overview â€” Qrinux LeadLens" },
       { name: "description", content: "Your scan usage, device info, and recent activity." },
     ],
   }),
@@ -25,12 +25,20 @@ function OverviewPage() {
   const d = dash.data;
   const activeKey = (keys.data ?? []).find((k) => !k.revoked_at);
   const currentPlan = d?.subscription?.plans as any;
-  const isPaidPlan = Boolean(currentPlan && currentPlan.slug !== "free");
-  const isUnlimited = isPaidPlan && currentPlan.daily_scan_limit == null;
-  const dailyLimit = isPaidPlan
-    ? ((currentPlan.daily_scan_limit as number | null) ?? 0)
-    : Number(d?.settings?.free_daily_limit ?? 100);
-  const usagePct = isUnlimited ? 0 : Math.min(100, Math.round(((d?.todayScans ?? 0) / (dailyLimit || 1)) * 100));
+  const quota = d?.quota;
+  const dailyLimit = quota?.dailyLimit ?? null;
+  const remainingToday = quota?.remainingToday ?? null;
+  const usagePct = quota?.usagePct ?? 0;
+  const isUnlimited = dailyLimit == null;
+  const planName = quota?.planName ?? currentPlan?.name ?? "Free";
+  const resetAt = quota?.resetAt ? new Date(quota.resetAt).toLocaleString(undefined, { hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : "UTC midnight";
+  const usageMessage = isUnlimited
+    ? "Unlimited scans available."
+    : usagePct >= 100
+      ? "Daily scan limit reached. Upgrade or wait for reset."
+      : usagePct >= 80
+        ? "You are close to today's scan limit."
+        : `${remainingToday ?? 0} scans remaining today.`;
 
   return (
     <DashboardShell
@@ -42,19 +50,19 @@ function OverviewPage() {
           icon={Zap}
           label="Scans today"
           value={String(d?.todayScans ?? 0)}
-          sub={isUnlimited ? "Unlimited" : `${dailyLimit - (d?.todayScans ?? 0)} left of ${dailyLimit}`}
+          sub={isUnlimited ? "Unlimited" : `${remainingToday ?? 0} left of ${dailyLimit}`}
         />
         <MetricCard
           icon={Activity}
           label="Current plan"
-          value={isPaidPlan ? currentPlan.name : "Free"}
+          value={planName}
           sub={`$${currentPlan?.price_usd ?? 0}/mo`}
         />
         <MetricCard
           icon={Globe}
           label="Total scans"
           value={String(d?.totalScans ?? 0)}
-          sub="Last 20 shown"
+          sub="All-time counted scans"
         />
         <MetricCard
           icon={TrendingUp}
@@ -69,21 +77,21 @@ function OverviewPage() {
           <div className="flex items-baseline justify-between mb-3">
             <div>
               <h3 className="font-semibold">Daily usage</h3>
-              <p className="text-sm text-muted-foreground">Resets every 24 hours at UTC midnight.</p>
+              <p className="text-sm text-muted-foreground">Resets at {resetAt}.</p>
             </div>
             <div className="text-sm font-medium">{usagePct}%</div>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full bg-foreground" style={{ width: `${usagePct}%` }} />
           </div>
-          {usagePct >= 80 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Running low? Upgrade to keep scanning.</span>
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <span className={usagePct >= 100 ? "text-destructive font-medium" : "text-muted-foreground"}>{usageMessage}</span>
+            {usagePct >= 80 && (
               <Link to="/billing" className="font-medium inline-flex items-center gap-1">
                 See plans <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -92,7 +100,7 @@ function OverviewPage() {
         <div className="lg:col-span-2 bg-background border border-border rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Recent scans</h3>
-            <span className="text-xs text-muted-foreground">{d?.history?.length ?? 0} recent</span>
+            <span className="text-xs text-muted-foreground">Last 20 shown</span>
           </div>
           {d?.history?.length ? (
             <div className="divide-y divide-border">
@@ -127,10 +135,10 @@ function OverviewPage() {
           <h3 className="font-semibold mb-4">Session</h3>
           <div className="space-y-3 text-sm">
             <StatusRow label="Account" value="Active" ok />
-            <StatusRow label="Plan" value={isPaidPlan ? currentPlan.name : "Free"} ok />
+            <StatusRow label="Plan" value={planName} ok />
             <StatusRow label="API key" value={activeKey ? "Generated" : "Missing"} ok={!!activeKey} />
             <StatusRow label="Device" value={activeKey?.device_fingerprint ? "Bound" : "Unbound"} ok={!!activeKey?.device_fingerprint} />
-            <StatusRow label="Last scan" value={d?.history?.[0] ? new Date(d.history[0].scanned_at).toLocaleDateString() : "—"} ok />
+            <StatusRow label="Last scan" value={d?.history?.[0] ? new Date(d.history[0].scanned_at).toLocaleDateString() : "â€”"} ok />
           </div>
           <div className="mt-5 pt-5 border-t border-border">
             <Link to="/api-key" className="text-sm font-medium inline-flex items-center gap-1">
@@ -169,3 +177,6 @@ function StatusRow({ label, value, ok }: { label: string; value: string; ok: boo
     </div>
   );
 }
+
+
+

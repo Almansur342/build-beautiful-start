@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -588,16 +588,36 @@ export type Database = {
       consume_scan_quota: {
         Args: {
           _event_id?: string
-          _limit: number
+          _limit?: number | null
           _scan_id?: string
+          _scan_mode?: string
+          _status?: string
           _user_id: string
           _website_url?: string
         }
         Returns: {
           allowed: boolean
+          counted: boolean
           duplicate: boolean
-          remaining: number
+          limit: number | null
+          monthly_limit: number | null
+          monthly_remaining: number | null
+          monthly_used: number
+          ok: boolean
+          reason: string | null
+          remaining: number | null
+          reset_at: string
           used: number
+        }[]
+      }
+      get_effective_scan_limits: {
+        Args: { _user_id: string }
+        Returns: {
+          daily_limit: number | null
+          monthly_limit: number | null
+          plan_name: string
+          plan_slug: string
+          source: string
         }[]
       }
       get_today_scan_count: { Args: { _user_id: string }; Returns: number }
@@ -742,3 +762,4 @@ export const Constants = {
     },
   },
 } as const
+

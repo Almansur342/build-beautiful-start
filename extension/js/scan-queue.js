@@ -1,10 +1,10 @@
-'use strict'
+﻿'use strict'
 /* globals chrome */
-// Qrinux LeadLens — Persistent scan-event queue (Phase C)
+// Qrinux LeadLens â€” Persistent scan-event queue (Phase C)
 //
 // Buffers scan events in chrome.storage.local and flushes them via the
-// /api/public/scan/batch endpoint on a chrome.alarms tick. Using alarms —
-// not setTimeout — because MV3 service workers can be evicted at any time;
+// /api/public/scan/batch endpoint on a chrome.alarms tick. Using alarms â€”
+// not setTimeout â€” because MV3 service workers can be evicted at any time;
 // alarms survive the eviction and wake the worker to drain the queue.
 //
 // The queue is idempotent: each event carries the immutable scan context's
@@ -89,7 +89,7 @@ const LeadLensScanQueue = {
 
       if (items.length === 0) {
         await this._save([])
-        // No work — let the alarm stay so we wake up next tick.
+        // No work â€” let the alarm stay so we wake up next tick.
         return { ok: true, drained: 0, remaining: 0 }
       }
 
@@ -133,7 +133,11 @@ const LeadLensScanQueue = {
           if (row && row.ok) { drained += 1; continue }
           const reason = row?.reason || 'missing_ack'
           const attempts = Number(item.attempts || 0) + 1
-          const delay = Math.min(60 * 60 * 1000, (2 ** attempts) * 30_000) + Math.floor(Math.random() * 15_000)
+          const resetAt = row?.reset_at ? new Date(row.reset_at).getTime() : 0
+          const quotaDelay = /quota_exceeded/i.test(reason) && resetAt > Date.now()
+            ? (resetAt - Date.now()) + Math.floor(Math.random() * 60_000)
+            : 0
+          const delay = quotaDelay || (Math.min(60 * 60 * 1000, (2 ** attempts) * 30_000) + Math.floor(Math.random() * 15_000))
           retry.push({ ...item, attempts, next_attempt_at: Date.now() + delay, last_error: reason })
         }
         const next = [...retry, ...rest].sort((a, b) => Number(a.queued_at) - Number(b.queued_at))
@@ -164,3 +168,4 @@ const LeadLensScanQueue = {
 
 self.LeadLensScanQueue = LeadLensScanQueue
 self.LEADLENS_QUEUE_ALARM = QUEUE_ALARM
+

@@ -1,12 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
+
+const nonCountableStatuses = new Set(["failed", "error", "blocked", "challenge", "skipped", "retry_required"]);
 
 const eventSchema = z.object({
   website_url: z.string().trim().min(1).max(500),
   event_id: z.string().trim().min(8).max(80).optional(),
   scan_id: z.string().trim().min(8).max(80).optional(),
+  status: z.string().trim().max(40).optional(),
 });
 
 const batchSchema = z.object({
@@ -21,6 +24,7 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 const METHODS = "POST, OPTIONS" as const;
+const QUOTA_MESSAGE = "You've reached today's scan limit. Your limit resets at UTC midnight, or you can upgrade to continue scanning.";
 
 export const Route = createFileRoute("/api/public/scan/batch")({
   server: {
@@ -77,7 +81,6 @@ export const Route = createFileRoute("/api/public/scan/batch")({
         if (kErr) return jsonResponse({ ok: false, reason: "service_error", message: "Key verification is temporarily unavailable." }, { status: 503, origin });
         if (!kRow || kRow.revoked_at) return jsonResponse({ ok: false, reason: "revoked", message: "This API key has been revoked." }, { status: 401, origin });
 
-        // Per-user dimension (post-auth).
         const rlUser = await checkComposite([
           { key: `batch:user:${kRow.user_id}`, max: 60, windowSeconds: 60 },
         ], { failClosed: true });
@@ -86,56 +89,56 @@ export const Route = createFileRoute("/api/public/scan/batch")({
         const { data: profile } = await admin.from("profiles").select("banned").eq("id", kRow.user_id).maybeSingle();
         if (profile?.banned) return jsonResponse({ ok: false, reason: "banned", message: "This account has been suspended." }, { status: 403, origin });
 
-        const { data: sub } = await admin
-          .from("subscriptions")
-          .select("status, current_period_end, plans(slug, name, daily_scan_limit)")
-          .eq("user_id", kRow.user_id)
-          .in("status", ["active", "trialing", "past_due"])
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const active = sub && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
-        const plan = active ? (sub.plans as any) : null;
-        const freeEnabled = map.free_tier_enabled !== false;
-        const freeLimit = Number(map.free_daily_limit ?? 100);
+        const { data: planRows } = await admin.rpc("get_effective_scan_limits", { _user_id: kRow.user_id });
+        const planRow = Array.isArray(planRows) ? planRows[0] : planRows;
+        const planLabel = String(planRow?.plan_name ?? "Free");
+        const rawLimit = planRow?.daily_limit;
+        const limit = rawLimit == null ? null : Number(rawLimit);
 
-        let limit: number | null;
-        let planLabel: string;
-        if (plan) {
-          limit = plan.daily_scan_limit;
-          planLabel = plan.name;
-        } else {
-          if (!freeEnabled) return jsonResponse({ ok: false, reason: "no_plan", message: "Free tier is disabled. Please upgrade in your dashboard." }, { status: 402, origin });
-          limit = freeLimit;
-          planLabel = "Free";
-        }
-
-        const results: Array<{ event_id?: string; ok: boolean; reason?: string; message?: string; remaining?: number | null; duplicate?: boolean }> = [];
+        const results: Array<{ event_id?: string; ok: boolean; reason?: string; message?: string; counted?: boolean; used?: number; limit?: number | null; remaining?: number | null; reset_at?: string; duplicate?: boolean }> = [];
         let lastRemaining: number | null = null;
+        let quotaBlocked = false;
+        let quotaBlockPayload: any = null;
+
         for (const ev of capped) {
-          const rpcArgs: any = { _user_id: kRow.user_id, _limit: limit ?? 2147483647, _website_url: ev.website_url };
+          const status = String(ev.status || "counted").toLowerCase();
+          if (nonCountableStatuses.has(status)) {
+            results.push({ event_id: ev.event_id, ok: true, counted: false, reason: status, message: "Scan result was not countable." });
+            continue;
+          }
+
+          if (quotaBlocked) {
+            results.push({ event_id: ev.event_id, ok: false, counted: false, reason: quotaBlockPayload?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used: quotaBlockPayload?.used, limit: quotaBlockPayload?.limit ?? limit, remaining: 0, reset_at: quotaBlockPayload?.reset_at });
+            continue;
+          }
+
+          const rpcArgs: any = { _user_id: kRow.user_id, _limit: null, _website_url: ev.website_url, _status: "counted", _scan_mode: "batch" };
           if (ev.event_id) rpcArgs._event_id = ev.event_id;
           if (ev.scan_id) rpcArgs._scan_id = ev.scan_id;
           const { data: rpcRows, error: rpcError } = await admin.rpc("consume_scan_quota", rpcArgs);
           if (rpcError) {
-            results.push({ event_id: ev.event_id, ok: false, reason: "service_error", message: "Could not authorize scan." });
+            results.push({ event_id: ev.event_id, ok: false, counted: false, reason: "service_error", message: "Could not authorize scan." });
             continue;
           }
           const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
-          if (!row?.allowed) {
-            const used = row?.used ?? 0;
-            results.push({ event_id: ev.event_id, ok: false, reason: "quota_exceeded", message: `Daily limit reached (${used}/${limit}).`, remaining: 0 });
+          if (!row?.ok && !row?.allowed) {
+            quotaBlocked = true;
+            quotaBlockPayload = row || { reason: "quota_exceeded", limit };
+            results.push({ event_id: ev.event_id, ok: false, counted: false, reason: row?.reason || "quota_exceeded", message: QUOTA_MESSAGE, used: row?.used, limit: row?.limit ?? limit, remaining: 0, reset_at: row?.reset_at });
             continue;
           }
           lastRemaining = row.remaining ?? lastRemaining;
-          results.push({ event_id: ev.event_id, ok: true, remaining: row.remaining, duplicate: !!row.duplicate });
+          results.push({ event_id: ev.event_id, ok: true, counted: !!row.counted, used: row.used, limit: row.limit ?? limit, remaining: row.remaining, reset_at: row.reset_at, duplicate: !!row.duplicate });
         }
 
         await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", kRow.id);
         await admin.from("extension_sessions").update({ last_used_at: new Date().toISOString() }).eq("id", sessionRow.id);
 
-        return jsonResponse({ ok: true, plan: planLabel, limit, remaining: lastRemaining, results, batch_cap: batchCap, dropped: Math.max(0, events.length - capped.length) }, { origin });
+        const counted = results.filter((row) => row.ok && row.counted).length;
+        const quotaBlockedCount = results.filter((row) => row.reason === "quota_exceeded" || row.reason === "monthly_quota_exceeded").length;
+        return jsonResponse({ ok: true, plan: planLabel, limit, remaining: lastRemaining, results, summary: { counted, quota_blocked: quotaBlockedCount, failed: results.filter((row) => row.reason === "failed" || row.reason === "error").length, blocked: results.filter((row) => row.reason === "blocked" || row.reason === "challenge").length, skipped: results.filter((row) => row.reason === "skipped").length }, batch_cap: batchCap, dropped: Math.max(0, events.length - capped.length) }, { origin });
       },
     },
   },
 });
+
