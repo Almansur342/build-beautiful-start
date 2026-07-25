@@ -21,13 +21,12 @@ export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Super Admin — Qrinux LeadLens" }] }),
   validateSearch: (s: Record<string, unknown>): { tab?: AdminTab } => {
     const v = s?.tab as string | undefined;
-    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback"];
+    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback", "settings"];
     return { tab: valid.includes(v as AdminTab) ? (v as AdminTab) : undefined };
   },
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
-    // Server-side gate is still in each fn; this is a UX gate.
   },
   component: AdminPage,
 });
@@ -45,6 +44,7 @@ function AdminPage() {
     refunds: { t: "Refund requests", d: "Review and process customer refunds." },
     support: { t: "Support inbox", d: "Reply to open tickets and mark them resolved." },
     feedback: { t: "Feedback", d: "5-star ratings from your users." },
+    settings: { t: "Remote configuration", d: "Live-toggle scans, batch caps, and the extension notice banner." },
   };
 
   return (
@@ -55,6 +55,7 @@ function AdminPage() {
       {tab === "refunds" && <RefundsTab />}
       {tab === "support" && <AdminSupport />}
       {tab === "feedback" && <FeedbackTab />}
+      {tab === "settings" && <SettingsTab />}
     </AdminShell>
   );
 }
@@ -585,5 +586,77 @@ function PlanRow({ plan, onSave }: { plan: any; onSave: (u: any) => Promise<void
         <Button size="sm" variant="outline" onClick={() => onSave({ name, price_usd: price, daily_scan_limit: limit === "" ? null : limit, validity_days: validity === "" ? null : validity, is_active: active })}>Save</Button>
       </td>
     </tr>
+  );
+}
+
+function SettingsTab() {
+  const overview = useOverview();
+  const qc = useQueryClient();
+  const updateSetting = useServerFn(adminUpdateSetting);
+  if (overview.isLoading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (!overview.data) return null;
+  const m: Record<string, any> = {};
+  for (const s of overview.data.settings) m[s.key] = s.value;
+  const save = async (key: string, value: unknown) => {
+    await updateSetting({ data: { key, value } });
+    qc.invalidateQueries({ queryKey: ["admin-overview"] });
+  };
+  const scanDisabled = m.scan_disabled === true;
+  const batchCap = Number(m.batch_max_events ?? 25);
+  const cfgTtl = Number(m.remote_config_ttl_minutes ?? 15);
+  const sessionHint = Number(m.session_ttl_hint_minutes ?? 30);
+  const notice = typeof m.notice === "string" ? m.notice : "";
+
+  return (
+    <div className="space-y-8">
+      <section className="bg-background shadow-sm p-6">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Live scan kill-switch</h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="font-medium">Scans {scanDisabled ? "paused" : "live"}</div>
+            <p className="text-xs text-muted-foreground mt-1">When paused, the extension shows a maintenance notice on every scan attempt.</p>
+          </div>
+          <Button variant={scanDisabled ? "outline" : "default"} onClick={() => save("scan_disabled", !scanDisabled)}>
+            {scanDisabled ? "Resume scans" : "Pause all scans"}
+          </Button>
+        </div>
+      </section>
+
+      <section className="bg-background shadow-sm p-6 grid md:grid-cols-3 gap-6">
+        <NumberSetting label="Batch max events" initial={batchCap} min={1} max={50} onSave={(v) => save("batch_max_events", v)} />
+        <NumberSetting label="Remote config TTL (minutes)" initial={cfgTtl} min={1} max={720} onSave={(v) => save("remote_config_ttl_minutes", v)} />
+        <NumberSetting label="Session TTL hint (minutes)" initial={sessionHint} min={5} max={480} onSave={(v) => save("session_ttl_hint_minutes", v)} />
+      </section>
+
+      <section className="bg-background shadow-sm p-6">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Extension notice banner</h2>
+        <NoticeEditor initial={notice} onSave={(v) => save("notice", v)} />
+      </section>
+    </div>
+  );
+}
+
+function NumberSetting({ label, initial, min, max, onSave }: { label: string; initial: number; min: number; max: number; onSave: (v: number) => Promise<void> | void }) {
+  const [v, setV] = useState<number>(initial);
+  return (
+    <div>
+      <label className="text-xs uppercase tracking-wider text-muted-foreground block mb-2">{label}</label>
+      <div className="flex gap-2">
+        <Input type="number" min={min} max={max} value={v} onChange={(e) => setV(Number(e.target.value))} className="h-9" />
+        <Button size="sm" variant="outline" onClick={() => onSave(Math.max(min, Math.min(max, v)))}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+function NoticeEditor({ initial, onSave }: { initial: string; onSave: (v: string) => Promise<void> | void }) {
+  const [v, setV] = useState<string>(initial);
+  return (
+    <div className="space-y-3">
+      <Input value={v} onChange={(e) => setV(e.target.value)} placeholder="Leave empty to hide" maxLength={280} />
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={() => onSave(v.trim())}>Save notice</Button>
+      </div>
+    </div>
   );
 }

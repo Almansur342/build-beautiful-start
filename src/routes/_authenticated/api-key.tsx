@@ -48,7 +48,7 @@ function ApiKeyPage() {
   const downloadExtension = () => {
     const a = document.createElement("a");
     a.href = extensionAsset.url;
-    a.download = "qrinux-leadlens-v1.7.0.zip";
+    a.download = "qrinux-leadlens-v1.8.0.zip";
     a.click();
   };
 
