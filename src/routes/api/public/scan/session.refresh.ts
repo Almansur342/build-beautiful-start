@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsFactory, jsonResponse, preflight, bodyTooLarge } from "../-cors";
 import { checkComposite, clientIp, deviceBucketId, rateLimitResponse, RATE_LIMIT_PRESETS } from "../-rate-limit";
+import { logSecurityEvent } from "../-audit";
 
 const schema = z.object({
   refresh_token: z.string().trim().regex(/^qlr_[a-f0-9]{64}$/i, "Invalid refresh token"),
