@@ -306,6 +306,8 @@ export type Database = {
           created_at: string
           event_id: string
           scan_id: string | null
+          scan_mode: string
+          status: string
           user_id: string
           website_url: string | null
         }
@@ -313,6 +315,8 @@ export type Database = {
           created_at?: string
           event_id: string
           scan_id?: string | null
+          scan_mode?: string
+          status?: string
           user_id: string
           website_url?: string | null
         }
@@ -320,6 +324,8 @@ export type Database = {
           created_at?: string
           event_id?: string
           scan_id?: string | null
+          scan_mode?: string
+          status?: string
           user_id?: string
           website_url?: string | null
         }
