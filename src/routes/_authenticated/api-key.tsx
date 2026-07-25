@@ -7,6 +7,7 @@ import { generateMyApiKey, listMyApiKeys, resetMyDeviceBinding } from "@/lib/api
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Copy, Download, KeyRound, RefreshCw, AlertTriangle } from "lucide-react";
+import extensionAsset from "@/assets/qrinux-leadlens.zip.asset.json";
 
 export const Route = createFileRoute("/_authenticated/api-key")({
   head: () => ({ meta: [{ title: "API Key — Qrinux LeadLens" }] }),
@@ -45,7 +46,7 @@ function ApiKeyPage() {
   const activeKey = (keys.data ?? []).find((k) => !k.revoked_at);
 
   const downloadExtension = () => {
-    fetch("/qrinux-leadlens-v1.13.3.zip")
+    fetch(extensionAsset.url)
       .then((response) => {
         if (!response.ok) throw new Error(`Download failed: ${response.status}`);
         return response.blob();
