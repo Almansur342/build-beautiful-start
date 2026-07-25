@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Super Admin — Qrinux LeadLens" }] }),
   validateSearch: (s: Record<string, unknown>): { tab?: AdminTab } => {
     const v = s?.tab as string | undefined;
-    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback", "settings"];
+    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback", "settings", "security"];
     return { tab: valid.includes(v as AdminTab) ? (v as AdminTab) : undefined };
   },
   beforeLoad: async () => {
