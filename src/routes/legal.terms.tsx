@@ -41,14 +41,6 @@ export const Route = createFileRoute("/legal/terms")({
         </ul>
       </LegalSection>
 
-      <LegalSection number="04" title="Payments">
-        <p>
-          Paid plans are billed monthly through Stripe. Refunds follow our{" "}
-          <Link to="/legal/refund">Refund Policy</Link>. You can cancel your subscription
-          anytime from the Billing page.
-        </p>
-      </LegalSection>
-
       <LegalSection number="05" title="Termination">
         <p>
           We may suspend accounts that violate these Terms or place the service or other

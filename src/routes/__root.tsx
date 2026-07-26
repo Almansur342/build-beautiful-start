@@ -148,7 +148,7 @@ function RootComponent() {
   }, [router, queryClient]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const DASH_ROUTES = ["/dashboard", "/admin", "/api-key", "/devices", "/billing", "/support", "/feedback", "/settings"];
+  const DASH_ROUTES = ["/dashboard", "/admin", "/api-key", "/devices", "/support", "/feedback", "/settings"];
   const hideNav = DASH_ROUTES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   return (

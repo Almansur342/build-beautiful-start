@@ -45,13 +45,6 @@ const RELEASES = [
       "Daily scan limits enforced per plan.",
     ],
   },
-  {
-    v: "v1.3.0",
-    date: "May 12, 2026",
-    title: "Stripe billing",
-    tag: "Feature",
-    items: ["Starter and Unlimited plans.", "Invoice history in dashboard.", "Self-serve refund requests."],
-  },
 ];
 
 function ChangelogPage() {

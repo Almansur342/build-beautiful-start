@@ -120,7 +120,6 @@ function isDashboard(p: string) {
     p.startsWith("/dashboard") ||
     p.startsWith("/api-key") ||
     p.startsWith("/devices") ||
-    p.startsWith("/billing") ||
     p.startsWith("/support") ||
     p.startsWith("/settings") ||
     p.startsWith("/admin")
