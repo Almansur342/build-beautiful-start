@@ -11,7 +11,6 @@ const LABELS: Record<string, string> = {
   legal: "Legal",
   privacy: "Privacy",
   terms: "Terms",
-  refund: "Refund policy",
   cookies: "Cookies",
 };
 
