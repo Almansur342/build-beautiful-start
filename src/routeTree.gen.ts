@@ -20,7 +20,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
-import { Route as LegalRefundRouteImport } from './routes/legal.refund'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
@@ -29,7 +28,6 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedApiKeyRouteImport } from './routes/_authenticated/api-key'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicConfigRouteImport } from './routes/api/public/config'
@@ -38,7 +36,6 @@ import { Route as ApiPublicScanPreflightRouteImport } from './routes/api/public/
 import { Route as ApiPublicScanFetchRouteImport } from './routes/api/public/scan/fetch'
 import { Route as ApiPublicScanBatchRouteImport } from './routes/api/public/scan/batch'
 import { Route as ApiPublicScanAuthorizeRouteImport } from './routes/api/public/scan/authorize'
-import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicScanSessionRefreshRouteImport } from './routes/api/public/scan/session.refresh'
 
 const LegalRoute = LegalRouteImport.update({
@@ -95,11 +92,6 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => LegalRoute,
 } as any)
-const LegalRefundRoute = LegalRefundRouteImport.update({
-  id: '/refund',
-  path: '/refund',
-  getParentRoute: () => LegalRoute,
-} as any)
 const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -138,11 +130,6 @@ const AuthenticatedDevicesRoute = AuthenticatedDevicesRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedApiKeyRoute = AuthenticatedApiKeyRouteImport.update({
@@ -185,12 +172,6 @@ const ApiPublicScanAuthorizeRoute = ApiPublicScanAuthorizeRouteImport.update({
   path: '/api/public/scan/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPaymentsWebhookRoute =
-  ApiPublicPaymentsWebhookRouteImport.update({
-    id: '/api/public/payments/webhook',
-    path: '/api/public/payments/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicScanSessionRefreshRoute =
   ApiPublicScanSessionRefreshRouteImport.update({
     id: '/refresh',
@@ -210,7 +191,6 @@ export interface FileRoutesByFullPath {
   '/legal': typeof LegalRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/api-key': typeof AuthenticatedApiKeyRoute
-  '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devices': typeof AuthenticatedDevicesRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
@@ -219,10 +199,8 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
-  '/legal/refund': typeof LegalRefundRoute
   '/legal/terms': typeof LegalTermsRoute
   '/api/public/config': typeof ApiPublicConfigRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
   '/api/public/scan/batch': typeof ApiPublicScanBatchRoute
   '/api/public/scan/fetch': typeof ApiPublicScanFetchRoute
@@ -242,7 +220,6 @@ export interface FileRoutesByTo {
   '/legal': typeof LegalRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/api-key': typeof AuthenticatedApiKeyRoute
-  '/billing': typeof AuthenticatedBillingRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devices': typeof AuthenticatedDevicesRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
@@ -251,10 +228,8 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
-  '/legal/refund': typeof LegalRefundRoute
   '/legal/terms': typeof LegalTermsRoute
   '/api/public/config': typeof ApiPublicConfigRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
   '/api/public/scan/batch': typeof ApiPublicScanBatchRoute
   '/api/public/scan/fetch': typeof ApiPublicScanFetchRoute
@@ -276,7 +251,6 @@ export interface FileRoutesById {
   '/legal': typeof LegalRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/api-key': typeof AuthenticatedApiKeyRoute
-  '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/devices': typeof AuthenticatedDevicesRoute
   '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
@@ -285,10 +259,8 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
-  '/legal/refund': typeof LegalRefundRoute
   '/legal/terms': typeof LegalTermsRoute
   '/api/public/config': typeof ApiPublicConfigRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/scan/authorize': typeof ApiPublicScanAuthorizeRoute
   '/api/public/scan/batch': typeof ApiPublicScanBatchRoute
   '/api/public/scan/fetch': typeof ApiPublicScanFetchRoute
@@ -310,7 +282,6 @@ export interface FileRouteTypes {
     | '/legal'
     | '/admin'
     | '/api-key'
-    | '/billing'
     | '/dashboard'
     | '/devices'
     | '/feedback'
@@ -319,10 +290,8 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/legal/cookies'
     | '/legal/privacy'
-    | '/legal/refund'
     | '/legal/terms'
     | '/api/public/config'
-    | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/batch'
     | '/api/public/scan/fetch'
@@ -342,7 +311,6 @@ export interface FileRouteTypes {
     | '/legal'
     | '/admin'
     | '/api-key'
-    | '/billing'
     | '/dashboard'
     | '/devices'
     | '/feedback'
@@ -351,10 +319,8 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/legal/cookies'
     | '/legal/privacy'
-    | '/legal/refund'
     | '/legal/terms'
     | '/api/public/config'
-    | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/batch'
     | '/api/public/scan/fetch'
@@ -375,7 +341,6 @@ export interface FileRouteTypes {
     | '/legal'
     | '/_authenticated/admin'
     | '/_authenticated/api-key'
-    | '/_authenticated/billing'
     | '/_authenticated/dashboard'
     | '/_authenticated/devices'
     | '/_authenticated/feedback'
@@ -384,10 +349,8 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/legal/cookies'
     | '/legal/privacy'
-    | '/legal/refund'
     | '/legal/terms'
     | '/api/public/config'
-    | '/api/public/payments/webhook'
     | '/api/public/scan/authorize'
     | '/api/public/scan/batch'
     | '/api/public/scan/fetch'
@@ -408,7 +371,6 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRoute
   LegalRoute: typeof LegalRouteWithChildren
   ApiPublicConfigRoute: typeof ApiPublicConfigRoute
-  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicScanAuthorizeRoute: typeof ApiPublicScanAuthorizeRoute
   ApiPublicScanBatchRoute: typeof ApiPublicScanBatchRoute
   ApiPublicScanFetchRoute: typeof ApiPublicScanFetchRoute
@@ -495,13 +457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalTermsRouteImport
       parentRoute: typeof LegalRoute
     }
-    '/legal/refund': {
-      id: '/legal/refund'
-      path: '/refund'
-      fullPath: '/legal/refund'
-      preLoaderRoute: typeof LegalRefundRouteImport
-      parentRoute: typeof LegalRoute
-    }
     '/legal/privacy': {
       id: '/legal/privacy'
       path: '/privacy'
@@ -556,13 +511,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/billing': {
-      id: '/_authenticated/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/api-key': {
@@ -621,13 +569,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicScanAuthorizeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/payments/webhook': {
-      id: '/api/public/payments/webhook'
-      path: '/api/public/payments/webhook'
-      fullPath: '/api/public/payments/webhook'
-      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/scan/session/refresh': {
       id: '/api/public/scan/session/refresh'
       path: '/refresh'
@@ -641,7 +582,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedApiKeyRoute: typeof AuthenticatedApiKeyRoute
-  AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDevicesRoute: typeof AuthenticatedDevicesRoute
   AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
@@ -652,7 +592,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedApiKeyRoute: AuthenticatedApiKeyRoute,
-  AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDevicesRoute: AuthenticatedDevicesRoute,
   AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
@@ -676,14 +615,12 @@ const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 interface LegalRouteChildren {
   LegalCookiesRoute: typeof LegalCookiesRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
-  LegalRefundRoute: typeof LegalRefundRoute
   LegalTermsRoute: typeof LegalTermsRoute
 }
 
 const LegalRouteChildren: LegalRouteChildren = {
   LegalCookiesRoute: LegalCookiesRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
-  LegalRefundRoute: LegalRefundRoute,
   LegalTermsRoute: LegalTermsRoute,
 }
 
@@ -712,7 +649,6 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRoute,
   LegalRoute: LegalRouteWithChildren,
   ApiPublicConfigRoute: ApiPublicConfigRoute,
-  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicScanAuthorizeRoute: ApiPublicScanAuthorizeRoute,
   ApiPublicScanBatchRoute: ApiPublicScanBatchRoute,
   ApiPublicScanFetchRoute: ApiPublicScanFetchRoute,
@@ -722,13 +658,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
