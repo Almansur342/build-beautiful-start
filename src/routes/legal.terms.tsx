@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { LegalArticle, LegalSection } from "@/components/legal-article";
 
 export const Route = createFileRoute("/legal/terms")({
