@@ -45,7 +45,7 @@ function OverviewPage() {
     : !setupReady
       ? { to: "/devices" as const, icon: Laptop, title: "Bind your Chrome device", body: "Run your first authorized scan to protect your account and enable scanning.", action: "View device setup" }
       : usagePct >= 80
-        ? { to: "/billing" as const, icon: TrendingUp, title: "Protect today?s scan capacity", body: usageMessage, action: "Compare plans" }
+        ? { to: "/api-key" as const, icon: TrendingUp, title: "Protect today's scan capacity", body: usageMessage, action: "View API key" }
         : { to: "/support" as const, icon: MessageCircleMore, title: "Need help with a scan?", body: "Our support inbox keeps every answer tied to the right conversation.", action: "Open support" };
   const NextStepIcon = nextStep.icon;
 
@@ -65,7 +65,7 @@ function OverviewPage() {
           icon={Activity}
           label="Current plan"
           value={planName}
-          sub={`$${currentPlan?.price_usd ?? 0}/mo`}
+          sub="Scan allowance tier"
         />
         <MetricCard
           icon={Globe}
@@ -97,11 +97,6 @@ function OverviewPage() {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className={usagePct >= 100 ? "text-destructive font-medium" : "text-muted-foreground"}>{usageMessage}</span>
-            {usagePct >= 80 && (
-              <Link to="/billing" className="font-medium inline-flex items-center gap-1">
-                See plans <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
           </div>
         </div>
       )}

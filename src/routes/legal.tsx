@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { BreadcrumbBar } from "@/components/breadcrumb-bar";
-import { ScrollText, FileText, Receipt, Cookie, Mail, ShieldCheck } from "lucide-react";
+import { ScrollText, FileText, Cookie, Mail, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/legal")({
   component: LegalLayout,
@@ -9,7 +9,6 @@ export const Route = createFileRoute("/legal")({
 const LINKS = [
   { to: "/legal/privacy", label: "Privacy Policy", icon: ShieldCheck },
   { to: "/legal/terms", label: "Terms of Service", icon: FileText },
-  { to: "/legal/refund", label: "Refund Policy", icon: Receipt },
   { to: "/legal/cookies", label: "Cookie Policy", icon: Cookie },
 ] as const;
 

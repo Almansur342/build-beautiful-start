@@ -7,7 +7,6 @@ import {
   adminGetOverview, adminUpdatePlan, adminUpdateSetting, adminRevokeUserKey,
   adminResetUserDevice, adminToggleBan, adminAssignPlan, adminListUserScans, adminListSecurityEvents,
 } from "@/lib/admin.functions";
-import { adminListRefunds, adminUpdateRefund } from "@/lib/billing.functions";
 import { adminListAllTickets, listTicketMessages, replyTicket, setTicketStatus } from "@/lib/tickets.functions";
 import { adminListFeedback } from "@/lib/feedback.functions";
 import { getAvatarSignedUrl } from "@/lib/profile.functions";
@@ -21,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Super Admin — Qrinux LeadLens" }] }),
   validateSearch: (s: Record<string, unknown>): { tab?: AdminTab } => {
     const v = s?.tab as string | undefined;
-    const valid: AdminTab[] = ["overview", "users", "plans", "refunds", "support", "feedback", "settings", "security"];
+    const valid: AdminTab[] = ["overview", "users", "plans", "support", "feedback", "settings", "security"];
     return { tab: valid.includes(v as AdminTab) ? (v as AdminTab) : undefined };
   },
   beforeLoad: async () => {
@@ -40,8 +39,7 @@ function AdminPage() {
   const titles: Record<AdminTab, { t: string; d: string }> = {
     overview: { t: "Platform overview", d: "Signals across users, keys, and scan volume." },
     users: { t: "Users", d: "Assign plans, reset devices, revoke keys." },
-    plans: { t: "Plans", d: "Manage pricing, daily limits, and validity." },
-    refunds: { t: "Refund requests", d: "Review and process customer refunds." },
+    plans: { t: "Plans", d: "Manage scan tiers, daily limits, and validity." },
     support: { t: "Support inbox", d: "Reply to open tickets and mark them resolved." },
     feedback: { t: "Feedback", d: "5-star ratings from your users." },
     security: { t: "Security event log", d: "Session, refresh, quota, and device signals from the extension." },
@@ -53,7 +51,6 @@ function AdminPage() {
       {tab === "overview" && <OverviewTab />}
       {tab === "users" && <UsersTab />}
       {tab === "plans" && <PlansTab />}
-      {tab === "refunds" && <RefundsTab />}
       {tab === "support" && <AdminSupport />}
       {tab === "feedback" && <FeedbackTab />}
       {tab === "security" && <SecurityLogTab />}
@@ -293,57 +290,6 @@ function PlansTab() {
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function RefundsTab() {
-  const qc = useQueryClient();
-  const fetch = useServerFn(adminListRefunds);
-  const update = useServerFn(adminUpdateRefund);
-  const list = useQuery({ queryKey: ["admin-refunds"], queryFn: () => fetch() });
-  const mut = useMutation({
-    mutationFn: (v: { id: string; status: "approved" | "rejected" | "refunded"; admin_note?: string }) =>
-      update({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-refunds"] }),
-  });
-
-  if (list.isLoading) return <div className="text-sm text-muted-foreground">Loading…</div>;
-  const rows = list.data ?? [];
-  return (
-    <div className="bg-background shadow-sm">
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground p-8 text-center">No refund requests.</p>
-      ) : (
-        <div className="divide-y divide-border/40">
-          {rows.map((r: any) => (
-            <div key={r.id} className="p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-sm font-medium">
-                  ${Number(r.amount_usd ?? 0).toFixed(2)} — {r.profiles?.email ?? r.user_id}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleString()}</div>
-                <div className="text-sm mt-2">{r.reason}</div>
-                {r.admin_note && (
-                  <div className="text-xs bg-muted px-3 py-2 mt-2"><b>Note:</b> {r.admin_note}</div>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 md:w-56 shrink-0">
-                <span className="text-xs uppercase tracking-wider font-medium">{r.status}</span>
-                {r.status === "pending" && (
-                  <>
-                    <Button size="sm" variant="outline" onClick={() => mut.mutate({ id: r.id, status: "approved" })}>Approve</Button>
-                    <Button size="sm" variant="outline" onClick={() => mut.mutate({ id: r.id, status: "rejected", admin_note: "Not eligible per policy." })}>Reject</Button>
-                  </>
-                )}
-                {r.status === "approved" && (
-                  <Button size="sm" onClick={() => mut.mutate({ id: r.id, status: "refunded", admin_note: "Refund processed in Stripe." })}>Mark refunded</Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

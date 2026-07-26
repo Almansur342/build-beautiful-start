@@ -65,7 +65,6 @@ function Nav() {
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#capabilities" className="hover:text-foreground">Capabilities</a>
           <a href="#integrations" className="hover:text-foreground">Integrations</a>
-          <a href="#pricing" className="hover:text-foreground">Pricing</a>
           <Link to="/blog" className="hover:text-foreground">Blog</Link>
           <a href="#faq" className="hover:text-foreground">FAQ</a>
         </nav>
@@ -570,7 +569,6 @@ function Comparison() {
     ["Accessibility signals", true, false, false],
     ["Chrome extension workflow", true, false, false],
     ["Device-locked API keys", true, false, false],
-    ["Transparent pricing", true, false, true],
   ];
   return (
     <section className="bg-muted/40 border-y border-border">
@@ -648,82 +646,6 @@ function Metrics() {
           <div key={m.l}>
             <div className="text-5xl sm:text-6xl font-semibold tracking-tight">{m.n}</div>
             <div className="text-sm opacity-70 mt-2">{m.l}</div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* =============================================================
-   PRICING
-   ============================================================= */
-function Pricing() {
-  const plans = [
-    { name: "Free", price: "$0", period: "forever", limit: "100 scans / day", cta: "Start free", features: ["Evidence capture", "Strict qualification", "Chrome extension", "Community support"] },
-    { name: "Starter", price: "$1", period: "/month", limit: "500 scans / day", cta: "Get Starter", features: ["Everything in Free", "500 scans per day", "30-day validity", "Email support"], popular: true },
-    { name: "Unlimited", price: "$5", period: "/month", limit: "Unlimited scans", cta: "Get Unlimited", features: ["Everything in Starter", "Unlimited daily scans", "Priority support", "Early features"] },
-  ];
-  return (
-    <section id="pricing" className="max-w-7xl mx-auto px-6 py-24">
-      <div className="text-center max-w-2xl mx-auto mb-14">
-        <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground mb-3">Pricing</div>
-        <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight">Simple pricing that scales with you.</h2>
-      </div>
-      <div className="grid md:grid-cols-3 gap-6">
-        {plans.map((p) => (
-          <div
-            key={p.name}
-            className={`rounded-3xl border p-8 flex flex-col ${p.popular ? "border-foreground bg-foreground text-background" : "border-border bg-card"}`}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{p.name}</h3>
-              {p.popular && <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">Popular</span>}
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-5xl font-semibold tracking-tight">{p.price}</span>
-              <span className={`text-sm ${p.popular ? "opacity-70" : "text-muted-foreground"}`}>{p.period}</span>
-            </div>
-            <p className={`mt-2 text-sm ${p.popular ? "opacity-80" : "text-muted-foreground"}`}>{p.limit}</p>
-            <ul className="mt-6 space-y-3 text-sm flex-1">
-              {p.features.map((f) => (
-                <li key={f} className="flex items-center gap-2">
-                  <Check className="h-4 w-4" /> {f}
-                </li>
-              ))}
-            </ul>
-            <Link to="/auth" className="mt-8">
-              <Button
-                className={`w-full rounded-full h-11 ${p.popular ? "bg-background text-foreground hover:bg-background/90" : ""}`}
-                variant={p.popular ? "default" : "outline"}
-              >
-                {p.cta}
-              </Button>
-            </Link>
-          </div>
-        ))}
-      </div>
-
-      {/* Pricing comparison */}
-      <div className="mt-16 rounded-3xl border border-border bg-card overflow-hidden">
-        <div className="grid grid-cols-4 bg-muted/60 text-sm font-medium">
-          <div className="p-4"></div>
-          <div className="p-4 text-center">Free</div>
-          <div className="p-4 text-center">Starter</div>
-          <div className="p-4 text-center">Unlimited</div>
-        </div>
-        {[
-          ["Daily scan limit", "100", "500", "∞"],
-          ["Evidence signals", "All", "All", "All"],
-          ["Strict v1.5.0 gates", "✓", "✓", "✓"],
-          ["Device binding", "✓", "✓", "✓"],
-          ["Validity", "Forever", "30 days", "30 days"],
-          ["Priority support", "—", "—", "✓"],
-        ].map((r, i) => (
-          <div key={i} className="grid grid-cols-4 text-sm border-t border-border">
-            {r.map((c, j) => (
-              <div key={j} className={`p-4 ${j === 0 ? "" : "text-center"}`}>{c}</div>
-            ))}
           </div>
         ))}
       </div>
@@ -891,10 +813,9 @@ function Blog() {
    ============================================================= */
 function Faq() {
   const items = [
-    { q: "How many scans can I run for free?", a: "Every account gets 100 scans per 24 hours on the Free plan. Paid plans lift the daily limit or remove it entirely." },
+    { q: "How many scans can I run?", a: "Every account gets 100 scans per 24 hours by default. Your admin can raise or remove that limit for your account." },
     { q: "How does device binding work?", a: "The first device that uses your API key gets locked to it. You can reset the binding from your dashboard if you switch machines." },
     { q: "Do you store the pages you scan?", a: "Only the normalized evidence. We do not store full page HTML, screenshots, or PII beyond the fields you configure." },
-    { q: "Can I cancel anytime?", a: "Yes. Paid plans are month-to-month and can be canceled from your dashboard in one click." },
     { q: "Is there an API?", a: "Yes. Every scan runs through the same API the Chrome extension uses. Bring your key, get JSON back." },
     { q: "Which browsers are supported?", a: "The extension targets Chrome and Chromium-based browsers (Edge, Brave, Arc)." },
   ];
@@ -960,7 +881,6 @@ function Footer() {
             <a href="mailto:hello@qrinux.com" className="mt-4 inline-block text-sm hover:text-foreground text-muted-foreground">hello@qrinux.com</a>
           </div>
           <FooterCol title="Product" links={[
-            { label: "Pricing", href: "#pricing" },
             { label: "How it works", href: "#how" },
             { label: "FAQ", href: "#faq" },
           ]} />
@@ -972,7 +892,6 @@ function Footer() {
           <FooterCol title="Legal" links={[
             { label: "Privacy Policy", to: "/legal/privacy" },
             { label: "Terms of Service", to: "/legal/terms" },
-            { label: "Refund Policy", to: "/legal/refund" },
             { label: "Cookies", to: "/legal/cookies" },
           ]} />
         </div>
@@ -1018,7 +937,6 @@ function Index() {
       <Comparison />
       <Founder />
       <Metrics />
-      <Pricing />
       <MoreBenefits />
       <HappyClients />
       <Blog />

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { LegalArticle, LegalSection } from "@/components/legal-article";
 
 export const Route = createFileRoute("/legal/terms")({
@@ -39,14 +39,6 @@ export const Route = createFileRoute("/legal/terms")({
           <li>Do not resell, rent, or sublicense access to your API key.</li>
           <li>Do not use the service for automated abuse, scraping at scale, or spam.</li>
         </ul>
-      </LegalSection>
-
-      <LegalSection number="04" title="Payments">
-        <p>
-          Paid plans are billed monthly through Stripe. Refunds follow our{" "}
-          <Link to="/legal/refund">Refund Policy</Link>. You can cancel your subscription
-          anytime from the Billing page.
-        </p>
       </LegalSection>
 
       <LegalSection number="05" title="Termination">

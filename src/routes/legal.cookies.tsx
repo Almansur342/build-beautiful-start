@@ -14,7 +14,7 @@ export const Route = createFileRoute("/legal/cookies")({
     <LegalArticle
       eyebrow="Cookies"
       title="A tiny handful of cookies."
-      lede="We use cookies to keep you signed in, count anonymous usage, and let Stripe run checkout. That's it."
+      lede="We use cookies to keep you signed in, and count anonymous usage. That's it."
       updated="July 24, 2026"
     >
       <LegalSection number="01" title="What cookies are">
@@ -31,10 +31,6 @@ export const Route = createFileRoute("/legal/cookies")({
           </li>
           <li>
             <b>Analytics:</b> anonymous usage counters — no cross-site tracking, no ads.
-          </li>
-          <li>
-            <b>Payments:</b> Stripe sets its own cookies on checkout pages under its
-            domain.
           </li>
         </ul>
       </LegalSection>

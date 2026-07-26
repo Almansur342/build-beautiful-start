@@ -30,7 +30,6 @@ export const Route = createFileRoute("/legal/privacy")({
         <ul>
           <li>Authenticate your account and enforce daily scan quotas.</li>
           <li>Bind your API key to a single device to prevent key sharing.</li>
-          <li>Provide invoices and process refunds through Stripe.</li>
           <li>Respond to support conversations you initiate.</li>
         </ul>
       </LegalSection>
@@ -38,7 +37,7 @@ export const Route = createFileRoute("/legal/privacy")({
       <LegalSection number="03" title="Sub-processors we share with">
         <p>
           We share data only with the providers required to run the service:
-          <b> Stripe</b> for payments, <b>Supabase</b> for authentication and storage, and
+          <b> Supabase</b> for authentication and storage, and
           <b> Google or Apple</b> for social sign-in when you choose them. We never sell
           your data to third parties.
         </p>
